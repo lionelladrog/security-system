@@ -1,0 +1,167 @@
+"use client";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardTitle,
+  CardDescription,
+  CardHeader,
+} from "@/components/ui/card";
+import { toast } from "sonner";
+import Image from "next/image";
+import { trpc } from "@/lib/trpc";
+import userStore from "@/store/userStore";
+import { useRouter } from "next/navigation";
+
+interface LoginFormProps {
+  relogin?: boolean;
+  afterLogin?: () => void;
+}
+
+function LoginForm({ relogin, afterLogin }: LoginFormProps) {
+  const router = useRouter();
+  const setUser = userStore((state) => state.setUser);
+  const loginMutation = trpc.auth.login.useMutation();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    loginMutation.mutate(
+      { email, password },
+      {
+        onSuccess: (data) => {
+          if (data) {
+            toast.success("Login successful!");
+            setUser(data);
+            if (relogin && afterLogin) {
+              afterLogin();
+            } else {
+              router.push("/dashboard");
+            }
+          }
+        },
+        onError: (err) => {
+          console.error(err);
+
+          if ("message" in err) {
+            setError(err.message);
+            toast.error(err.message, { duration: 10000 });
+          } else {
+            setError("An unexpected error occurred");
+            toast.error("An unexpected error occurred", { duration: 10000 });
+          }
+          setIsLoading(false);
+
+          setTimeout(() => {
+            setError(null);
+          }, 10000);
+        },
+      }
+    );
+  };
+
+  // Quick login for demo
+  // const handleQuickLogin = () => {
+  //   const adminUser = mockUsers[0];
+  //   onLogin(adminUser.email, adminUser.name);
+  //   toast.success("Logged in as Admin");
+  // };
+
+  return (
+    <div className=" flex items-center justify-center  ">
+      <div className="w-full max-w-md">
+        {/* Logo/Header */}
+        <div className="text-center mb-2">
+          <div className="inline-flex items-center justify-center  mb-2">
+            <Image
+              src="/logo2.png"
+              alt="Logo"
+              width={180}
+              height={150}
+              priority
+              style={{
+                // width: "auto",
+                height: "auto",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Login Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className=" text-center text-red-500">{error}</CardTitle>
+            <CardDescription className="text-center">
+              Sign in to access your dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="contact@safewatch-security.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
+
+            {/* Demo documentation */}
+            {!relogin && (
+              <div className="mt-6 p-4 bg-accent/50 rounded-lg">
+                <p className="text-sm mb-2">
+                  <strong>How to use:</strong>
+                </p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Click the button below to open the user guide.
+                </p>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  // onClick={handleQuickLogin}
+                >
+                  Quick Tour
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          SafeWatch Security System
+        </p>
+      </div>
+    </div>
+  );
+}
+export default LoginForm;
