@@ -164,7 +164,7 @@ function StaffAttendance() {
     if (!showAddStaff) {
       StaffsData.refetch();
     }
-  }, [showAddStaff]);
+  }, [showAddStaff, StaffsData]);
 
   useEffect(() => {
     if (isDelete || !showAttendanceForm || queryParams) {

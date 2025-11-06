@@ -169,7 +169,7 @@ export default function StaffAttendanceForm({
     const [inHour, inMinute] = watchCheckIn.split(":").map(Number);
     const [outHour, outMinute] = watchCheckOut.split(":").map(Number);
 
-    let inTotalMinutes = inHour * 60 + inMinute;
+    const inTotalMinutes = inHour * 60 + inMinute;
     let outTotalMinutes = outHour * 60 + outMinute;
 
     if (outTotalMinutes < inTotalMinutes) {
