@@ -139,7 +139,7 @@ export default function StaffAttendanceForm({
         hasPendingRequest: false,
       });
     }
-  }, [attendanceRecord, staffs, sites, user, form]);
+  }, [attendanceRecord, staffs, sites, user, form, selectedDate]);
 
   useEffect(() => {
     if (watchCheckIn && watchCheckOut) {
