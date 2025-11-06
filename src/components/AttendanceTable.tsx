@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 
 import {
@@ -26,21 +27,23 @@ import { Edit, Trash2, Bell, Pencil } from "lucide-react";
 import { AttendanceTableRecord } from "../type";
 import { trpc } from "../lib/trpc";
 import userStore from "../store/userStore";
+import { StaffTableSkeleton } from "@/components/Skeleton";
 
 interface AttendanceTableProps {
   filteredStaffs: AttendanceTableRecord[];
+  isLoading: boolean;
   onDelete: () => void;
   onEdit: (attendance: AttendanceTableRecord) => void;
 }
 
 export function AttendanceTable({
   filteredStaffs,
+  isLoading,
   onDelete,
   onEdit,
 }: AttendanceTableProps) {
   const user = userStore((state) => state.user);
-  // const [searchName, setSearchName] = useState("");
-  // const [selectedMonth, setSelectedMonth] = useState("all");
+
   const [staffToDelete, setStaffToDelete] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -100,6 +103,10 @@ export function AttendanceTable({
       }
     );
   };
+
+  if (isLoading) {
+    return <StaffTableSkeleton />;
+  }
 
   return (
     <div>

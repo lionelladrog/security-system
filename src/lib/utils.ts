@@ -38,7 +38,7 @@ export const getAttendanceStats = (
   const sitesName: string[] = [];
 
   for (let i = 0; i < attendances.length; i++) {
-    if (attendances[i].status) {
+    if ("status" in attendances[i]) {
       if (!staffs.includes(attendances[i].staffId)) {
         staffs.push(attendances[i].staffId);
         if (
@@ -70,10 +70,11 @@ export const getAttendanceStats = (
           }
         }
 
-        if (attendances[i].travelAllowance) {
+        if ("travelAllowance" in attendances[i]) {
           stats.travelAllowance += Number(attendances[i].sumTravelAllowance);
         }
       }
+
       if (attendances[i].sites) {
         const name = attendances[i].sites?.split(",");
         if (name && name?.length > 0) {
@@ -85,15 +86,15 @@ export const getAttendanceStats = (
           }
         }
       } else if (
-        attendances[i].siteId &&
-        !sites.includes(attendances[i].siteId)
+        "siteId" in attendances[i] &&
+        !sites.includes(attendances[i].siteId!)
       ) {
-        sites.push(attendances[i].siteId);
+        sites.push(attendances[i].siteId!);
         stats.sites++;
       }
-      if (attendances[i].sumHours) {
+      if ("sumHours" in attendances[i]) {
         stats.hours += Number(attendances[i].sumHours);
-      } else if (attendances[i].hours) {
+      } else if ("hours" in attendances[i]) {
         stats.hours += Number(attendances[i].hours);
       }
     }

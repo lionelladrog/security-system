@@ -35,12 +35,15 @@ export const StaffForm = ({ callback }: StaffFormProps) => {
     lastName: z.string().min(1, "Last Name is required"),
     phone: z
       .string()
-      .regex(/^\+?[0-9]{8,14}$/, {
-        message: "Invalid phone number format",
-      })
-      .optional(),
+      .regex(/^\+?[0-9]{8,14}$/, { message: "Invalid phone number format" })
+      .optional()
+      .or(z.literal("")),
     position: z.string().optional(),
-    email: z.string().email("Invalid email address"),
+    email: z
+      .string()
+      .email("Invalid email address")
+      .optional()
+      .or(z.literal("")),
     userId: z.number(),
   });
 
@@ -54,12 +57,20 @@ export const StaffForm = ({ callback }: StaffFormProps) => {
     defaultValues: {
       position: "",
       userId: userID,
+      email: "",
+      phone: "",
     },
   });
 
   const onSubmit = useCallback(
     (data: NewStaffMember) => {
-      Staff.mutate(data, {
+      const payload = {
+        ...data,
+        email: data.email?.trim() || "",
+        phone: data.phone?.trim() || "",
+      };
+
+      Staff.mutate(payload, {
         onSuccess: () => {
           toast.success("Staff member added successfully");
           callback(false);

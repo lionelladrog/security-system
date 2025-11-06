@@ -17,6 +17,8 @@ export const staffRouter = router({
     .input(staffMemberchema)
     .mutation(async ({ input, ctx }) => {
       try {
+        console.log(input);
+
         const result = await ctx.db
           .insert(staffMember)
           .values(input as NewStaffMember);

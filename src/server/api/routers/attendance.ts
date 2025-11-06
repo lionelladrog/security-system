@@ -229,7 +229,7 @@ export const attendanceRouter = router({
 
         const results = await ctx.db
           .select({
-            ...getTableColumns(staffAttendanceRecords),
+            // ...getTableColumns(staffAttendanceRecords),
             staffId: staffAttendanceRecords.staffId,
             employeeId: staffMember.employeeId,
             firstName: staffMember.firstName,
@@ -242,7 +242,7 @@ export const attendanceRouter = router({
             avgHours: sql`AVG(${staffAttendanceRecords.hours})`,
             sumTravelAllowance: sql`SUM(${staffAttendanceRecords.travelAllowance})`,
             sites: sql`GROUP_CONCAT(DISTINCT ${site.name} SEPARATOR ', ')`,
-            site: site.name,
+            // site: site.name,
             attendanceRate: sql`
             COALESCE(
               (SUM(CASE WHEN ${staffAttendanceRecords.status} = 'present' THEN 1 ELSE 0 END)
@@ -259,7 +259,7 @@ export const attendanceRouter = router({
           .innerJoin(site, eq(site.id, staffAttendanceRecords.siteId))
           .where(and(...conditions))
           .groupBy(
-            staffAttendanceRecords.staffId,
+            // staffAttendanceRecords.staffId,
             staffMember.employeeId,
             staffMember.firstName,
             staffMember.lastName

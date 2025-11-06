@@ -27,6 +27,7 @@ import userStore from "../store/userStore";
 
 interface AttendanceFormProps {
   attendanceRecord: NewStaffAttendanceRecord | null;
+  selectedDate: Date;
   showAttendanceForm: boolean;
   staffs: NewStaffMember[];
   formCallback: (show: boolean) => void;
@@ -34,6 +35,7 @@ interface AttendanceFormProps {
 
 export default function StaffAttendanceForm({
   attendanceRecord,
+  selectedDate,
   formCallback,
   staffs,
 }: AttendanceFormProps) {
@@ -55,7 +57,7 @@ export default function StaffAttendanceForm({
   const form = useForm({
     resolver: zodResolver(newStaffAttendanceRecordZod),
     defaultValues: {
-      date: new Date(),
+      date: selectedDate,
       siteId: attendanceRecord?.siteId || 0,
       staffId: attendanceRecord?.staffId || 0,
       checkIn: "",
@@ -99,7 +101,7 @@ export default function StaffAttendanceForm({
         id: attendanceRecord.id || 0,
         date: attendanceRecord.date
           ? new Date(attendanceRecord.date)
-          : new Date(),
+          : selectedDate,
         staffId:
           typeof attendanceRecord?.staffId === "number"
             ? attendanceRecord.staffId
@@ -123,7 +125,7 @@ export default function StaffAttendanceForm({
       });
     } else {
       form.reset({
-        date: new Date(),
+        date: selectedDate,
         siteId: attendanceRecord?.siteId || 0,
         staffId: attendanceRecord?.staffId || 0,
         checkIn: "",
@@ -162,17 +164,24 @@ export default function StaffAttendanceForm({
     watchCheckOut: string,
     watchBreakTime: number | undefined
   ) => {
-    if (!watchCheckIn || !watchCheckOut) return 0;
+    if (!watchCheckIn || !watchCheckOut) return "0.00";
+
     const [inHour, inMinute] = watchCheckIn.split(":").map(Number);
     const [outHour, outMinute] = watchCheckOut.split(":").map(Number);
-    const inTotalMinutes = inHour * 60 + inMinute;
-    const outTotalMinutes = outHour * 60 + outMinute;
+
+    let inTotalMinutes = inHour * 60 + inMinute;
+    let outTotalMinutes = outHour * 60 + outMinute;
+
+    if (outTotalMinutes < inTotalMinutes) {
+      outTotalMinutes += 24 * 60;
+    }
 
     const workedMinutes = watchBreakTime
       ? outTotalMinutes - inTotalMinutes - watchBreakTime
       : outTotalMinutes - inTotalMinutes;
 
     const hours = Math.max(workedMinutes / 60, 0);
+
     return hours.toFixed(2);
   };
 
@@ -184,7 +193,7 @@ export default function StaffAttendanceForm({
     if (!("id" in data)) {
       attendanceCreateMutation.mutate(data, {
         onSuccess: () => {
-          toast.success("Attendance saved successfully!", { duration: 4000 });
+          toast.success("Attendance saved successfully!", { duration: 6000 });
           formCallback(false);
         },
         onError: (error) => {
@@ -194,7 +203,7 @@ export default function StaffAttendanceForm({
     } else {
       attendanceUpdateMutation.mutate(data, {
         onSuccess: () => {
-          toast.success("Attendance updated successfully!", { duration: 4000 });
+          toast.success("Attendance updated successfully!", { duration: 8000 });
           formCallback(false);
         },
         onError: (error) => {

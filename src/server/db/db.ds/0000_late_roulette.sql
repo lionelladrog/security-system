@@ -35,7 +35,7 @@ CREATE TABLE `staff_member` (
 	`employee_id` varchar(50) NOT NULL,
 	`first_name` varchar(100) NOT NULL,
 	`last_name` varchar(100) NOT NULL,
-	`email` varchar(255) NOT NULL,
+	`email` varchar(255) DEFAULT '',
 	`phone` varchar(20),
 	`position` varchar(100),
 	`department` varchar(100),

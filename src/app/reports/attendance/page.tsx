@@ -40,6 +40,10 @@ import { StatsType, AttendanceStatsReport } from "@/type";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import siteStore from "@/store/siteStore";
+import {
+  StatsSkeleton,
+  AttendanceReportTableSkeleton,
+} from "@/components/Skeleton";
 
 import {
   getAttendanceStats,
@@ -119,6 +123,7 @@ function AttendanceReports() {
     if (Attendances.data?.totalDays) {
       setTotalDays(Attendances.data.totalDays);
     }
+
     if (Attendances.data?.results) {
       const parsed: AttendanceStatsReport[] = Attendances.data.results.map(
         (item) => {
@@ -128,16 +133,16 @@ function AttendanceReports() {
 
           return {
             ...item,
-            date: new Date(item.date),
-            createdAt: new Date(item.createdAt),
-            updatedAt: new Date(item.updatedAt),
-            approvedAt: new Date(item.approvedAt),
+
             sites: String(item.sites),
             sumPresent: Number(item.sumPresent ?? 0),
             sumAbsent: Number(item.sumAbsent ?? 0),
             sumLate: Number(item.sumLate ?? 0),
             sumHours: Number(item.sumHours ?? 0),
             avgHours: Number(item.avgHours ?? 0),
+            status: "",
+            siteId: 0,
+            hours: 0,
             sumTravelAllowance: Number(item.sumTravelAllowance ?? 0),
 
             attendanceRate: rate,
@@ -554,93 +559,101 @@ function AttendanceReports() {
       </Card>
 
       {/* Overall Statistics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Period</CardDescription>
-            <CardTitle className="text-2xl">
-              {dateRange.from && dateRange.to
-                ? `${
-                    Math.ceil(
-                      (dateRange.to.getTime() - dateRange.from.getTime()) /
-                        (1000 * 60 * 60 * 24)
-                    ) + 1
-                  } days`
-                : dateRange.from || dateRange.to
-                ? "Custom"
-                : totalRecord > 0
-                ? `${totalRecord} records`
-                : "No data"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-muted-foreground">
-              {dateRange.from && dateRange.to
-                ? `${format(dateRange.from, "MMM dd")} - ${format(
-                    dateRange.to,
-                    "MMM dd"
-                  )}`
-                : "All time"}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Attendance Rate</CardDescription>
-            <CardTitle className="text-3xl">
-              {(Stats.attendanceRate * 10).toFixed(1)}%
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Present:</span>
-                <span className="text-green-600">{Stats.present}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Absent:</span>
-                <span className="text-red-600">{Stats.absent}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Late:</span>
-                <span className="text-orange-600">{Stats.late}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Total Hours</CardDescription>
-            <CardTitle className="text-3xl">{Stats.hours.toFixed(2)}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-muted-foreground">
-              Avg: {(Stats.hours / totalDays).toFixed(2)} hrs/day
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Travel Allowance</CardDescription>
-            <CardTitle className="text-3xl">
-              Rs {Stats.travelAllowance.toFixed(0)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-muted-foreground">Total used</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Number of Sites</CardDescription>
-            <CardTitle className="text-3xl">{Stats.sites}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-muted-foreground">
-              Active locations
-            </div>
-          </CardContent>
-        </Card>
+      <div>
+        {Attendances.isLoading ? (
+          <StatsSkeleton />
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardDescription>Period</CardDescription>
+                <CardTitle className="text-2xl">
+                  {dateRange.from && dateRange.to
+                    ? `${
+                        Math.ceil(
+                          (dateRange.to.getTime() - dateRange.from.getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        ) + 1
+                      } days`
+                    : dateRange.from || dateRange.to
+                    ? "Custom"
+                    : totalRecord > 0
+                    ? `${totalRecord} records`
+                    : "No data"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  {dateRange.from && dateRange.to
+                    ? `${format(dateRange.from, "MMM dd")} - ${format(
+                        dateRange.to,
+                        "MMM dd"
+                      )}`
+                    : "All time"}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardDescription>Attendance Rate</CardDescription>
+                <CardTitle className="text-3xl">
+                  {(Stats.attendanceRate * 10).toFixed(1)}%
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Present:</span>
+                    <span className="text-green-600">{Stats.present}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Absent:</span>
+                    <span className="text-red-600">{Stats.absent}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Late:</span>
+                    <span className="text-orange-600">{Stats.late}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardDescription>Total Hours</CardDescription>
+                <CardTitle className="text-3xl">
+                  {Stats.hours.toFixed(2)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  Avg: {(Stats.hours / totalDays).toFixed(2)} hrs/day
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardDescription>Travel Allowance</CardDescription>
+                <CardTitle className="text-3xl">
+                  Rs {Stats.travelAllowance.toFixed(0)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">Total used</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardDescription>Number of Sites</CardDescription>
+                <CardTitle className="text-3xl">{Stats.sites}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  Active locations
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Staff Reports Table */}
@@ -654,78 +667,82 @@ function AttendanceReports() {
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Site</TableHead>
-                  <TableHead>Total Days</TableHead>
-                  <TableHead>Present</TableHead>
-                  <TableHead>Absent</TableHead>
-                  <TableHead>Late</TableHead>
-                  <TableHead>Rate</TableHead>
-                  <TableHead>Total Hours</TableHead>
-                  <TableHead>Avg Hours</TableHead>
-                  <TableHead>Travel (Rs)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtredAttendances.length > 0 ? (
-                  filtredAttendances.map((report) => (
-                    <TableRow key={report.employeeId}>
-                      <TableCell className="font-medium">
-                        {report.employeeId}
-                      </TableCell>
-                      <TableCell>
-                        {report.firstName} {report.lastName}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{report.sites}</Badge>
-                      </TableCell>
-                      <TableCell>{totalDays}</TableCell>
-                      <TableCell className="text-green-600">
-                        {report.sumPresent}
-                      </TableCell>
-                      <TableCell className="text-red-600">
-                        {report.sumAbsent}
-                      </TableCell>
-                      <TableCell className="text-orange-600">
-                        {report.sumLate}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            Number(report.attendanceRate) >= 90
-                              ? "bg-green-100 text-green-800 hover:bg-green-100"
-                              : report.attendanceRate &&
-                                report.attendanceRate >= 75
-                              ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                              : "bg-red-100 text-red-800 hover:bg-red-100"
-                          }
-                        >
-                          {report.attendanceRate?.toFixed(1)}%
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{report.sumHours?.toFixed(2)}</TableCell>
-                      <TableCell>{report.avgHours?.toFixed(2)}</TableCell>
-                      <TableCell>
-                        {report.sumTravelAllowance?.toFixed(2)}
+            {Attendances.isLoading ? (
+              <AttendanceReportTableSkeleton />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Site</TableHead>
+                    <TableHead>Total Days</TableHead>
+                    <TableHead>Present</TableHead>
+                    <TableHead>Absent</TableHead>
+                    <TableHead>Late</TableHead>
+                    <TableHead>Rate</TableHead>
+                    <TableHead>Total Hours</TableHead>
+                    <TableHead>Avg Hours</TableHead>
+                    <TableHead>Travel (Rs)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtredAttendances.length > 0 ? (
+                    filtredAttendances.map((report) => (
+                      <TableRow key={report.employeeId}>
+                        <TableCell className="font-medium">
+                          {report.employeeId}
+                        </TableCell>
+                        <TableCell>
+                          {report.firstName} {report.lastName}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{report.sites}</Badge>
+                        </TableCell>
+                        <TableCell>{totalDays}</TableCell>
+                        <TableCell className="text-green-600">
+                          {report.sumPresent}
+                        </TableCell>
+                        <TableCell className="text-red-600">
+                          {report.sumAbsent}
+                        </TableCell>
+                        <TableCell className="text-orange-600">
+                          {report.sumLate}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              Number(report.attendanceRate) >= 90
+                                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                : report.attendanceRate &&
+                                  report.attendanceRate >= 75
+                                ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                : "bg-red-100 text-red-800 hover:bg-red-100"
+                            }
+                          >
+                            {report.attendanceRate?.toFixed(1)}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{report.sumHours?.toFixed(2)}</TableCell>
+                        <TableCell>{report.avgHours?.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {report.sumTravelAllowance?.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={11}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        No data available for the selected filters
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={11}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      No data available for the selected filters
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </CardContent>
       </Card>

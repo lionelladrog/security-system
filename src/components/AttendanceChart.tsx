@@ -205,7 +205,9 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
       const absentPercent =
         total > 0 ? Math.round((absentCount / total) * 100) : 0;
 
-      const date = new Date(dateStr);
+      const year = new Date().getFullYear();
+      const Fulldate = new Date(`${dateStr} ${year}`);
+      const date = new Date(Fulldate);
       const formattedDate = date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",

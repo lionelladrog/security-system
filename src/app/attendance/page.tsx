@@ -33,7 +33,6 @@ import {
 
 import { CalendarIcon, UserPlus, Clock, Search } from "lucide-react";
 import { format } from "date-fns";
-import { StaffTableSkeleton } from "@/components/Skeleton";
 import { trpc } from "@/lib/trpc";
 import { months } from "@/constant";
 import { AttendanceTableRecord, NewStaffMember, StatsType } from "@/type";
@@ -41,6 +40,7 @@ import { StaffForm } from "@/components/StaffForm";
 import StaffAttendanceForm from "@/components/StaffAttendanceForm";
 import { AttendanceTable } from "@/components/AttendanceTable";
 import { getAttendanceStats } from "@/lib/utils";
+import { StatsCardsSkeleton } from "@/components/Skeleton";
 import userStore from "@/store/userStore";
 
 export interface StaffMember {
@@ -161,6 +161,12 @@ function StaffAttendance() {
   }, [StaffsData.data]);
 
   useEffect(() => {
+    if (!showAddStaff) {
+      StaffsData.refetch();
+    }
+  }, [showAddStaff]);
+
+  useEffect(() => {
     if (isDelete || !showAttendanceForm || queryParams) {
       Attendances.refetch();
 
@@ -182,10 +188,22 @@ function StaffAttendance() {
         createdAt: new Date(item.createdAt),
         updatedAt: new Date(item.updatedAt),
         approvedAt: new Date(item.approvedAt),
+        status: item.status ? item.status : "",
       }));
 
       setAttendanceState(parsed);
-      const stats = getAttendanceStats(parsed);
+
+      const newparsed = Attendances.data.map((item) => ({
+        ...item,
+        date: new Date(item.date),
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+        approvedAt: new Date(item.approvedAt),
+        status: item.status ? item.status : "",
+        hours: 0,
+      }));
+
+      const stats = getAttendanceStats(newparsed);
 
       setAttendanceStats(stats);
     }
@@ -247,46 +265,50 @@ function StaffAttendance() {
 
       {/* Stats Cards */}
       <CardTitle>Today&apos;s Status</CardTitle>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Total Staff</CardDescription>
-            <CardTitle className="text-3xl">{totalStaff}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Present</CardDescription>
-            <CardTitle className="text-3xl text-green-600">
-              {attendanceStats.present}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Absent</CardDescription>
-            <CardTitle className="text-3xl text-red-600">
-              {attendanceStats.absent}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Late</CardDescription>
-            <CardTitle className="text-3xl text-yellow-600">
-              {attendanceStats.late}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Not Marked</CardDescription>
-            <CardTitle className="text-3xl text-gray-600">
-              {attendanceStats.notMarked}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+      {Attendances.isLoading ? (
+        <StatsCardsSkeleton />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Total Staff</CardDescription>
+              <CardTitle className="text-3xl">{totalStaff}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Present</CardDescription>
+              <CardTitle className="text-3xl text-green-600">
+                {attendanceStats.present}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Absent</CardDescription>
+              <CardTitle className="text-3xl text-red-600">
+                {attendanceStats.absent}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Late</CardDescription>
+              <CardTitle className="text-3xl text-yellow-600">
+                {attendanceStats.late}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Not Marked</CardDescription>
+              <CardTitle className="text-3xl text-gray-600">
+                {attendanceStats.notMarked}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+      )}
 
       {/* Date Selector */}
       <Card>
@@ -309,7 +331,9 @@ function StaffAttendance() {
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
+                  onSelect={(date) =>
+                    date && (setSelectedDate(date), setSelectedMonth("all"))
+                  }
                   disabled={user?.role !== "admin" && isDateDisabled}
                 />
               </PopoverContent>
@@ -424,9 +448,9 @@ function StaffAttendance() {
           </div>
 
           <div className="rounded-md border">
-            {Attendances.isLoading && <StaffTableSkeleton />}
             <AttendanceTable
               filteredStaffs={filtredAttendances}
+              isLoading={Attendances.isLoading}
               onDelete={() => setStaffIsDelete(true)}
               onEdit={setRecordToUpdate}
             />
@@ -454,6 +478,7 @@ function StaffAttendance() {
           </DialogHeader>
           <StaffAttendanceForm
             staffs={staffs}
+            selectedDate={selectedDate}
             attendanceRecord={recordToUpdate}
             showAttendanceForm={showAttendanceForm}
             formCallback={setShowAttendanceForm}

@@ -22,18 +22,18 @@ export interface StaffMember {
   employeeId: string;
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string;
   site: string;
 }
 
 export const staffMemberchema = z.object({
   id: z.number().optional().nullable(),
-  email: z.string().email(),
+  email: z.string().email().optional().or(z.literal("")),
   firstName: z.string(),
   lastName: z.string(),
   role: z.enum(["admin", "editor", "viewer"]).optional(),
   employeeId: z.string(),
-  phone: z.string().optional().nullable(),
+  phone: z.string().optional().nullable().or(z.literal("")),
   position: z.string().optional().nullable(),
   department: z.string().optional().nullable(),
   hireDate: z.date().optional().nullable(),
