@@ -34,6 +34,7 @@ function LoginForm({ relogin, afterLogin }: LoginFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    console.log("login");
 
     loginMutation.mutate(
       { email, password },

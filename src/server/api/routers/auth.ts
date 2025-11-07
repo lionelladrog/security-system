@@ -35,6 +35,8 @@ export const authRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      console.log("toto");
+
       const result = await db
         .select()
         .from(user)
