@@ -18,7 +18,7 @@ export default function TestDbPage() {
         alert("❌ Erreur connexion DB: " + data.error);
       }
     } catch (err) {
-      alert("❌ Erreur inconnue: " + err);
+      alert("❌ Erreur inconnue verifier vos paremetre: " + err);
     } finally {
       setLoading(false);
     }
