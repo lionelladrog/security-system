@@ -41,6 +41,7 @@ export const authRouter = router({
         .where(eq(user.email, input.email))
         .limit(1)
         .execute();
+      console.log("result", result);
 
       if (result.length === 0)
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
