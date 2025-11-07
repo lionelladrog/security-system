@@ -33,9 +33,9 @@ export const authRouter = router({
     }
 
     try {
-      await db.execute("SELECT 1"); // simple test
-
-      return { success: true };
+      const users = await db.execute("SELECT * FROM `user`"); // simple test
+      console.log("Users:", users);
+      return { success: true, users };
     } catch (err) {
       return { success: false, error: (err as Error).message };
     }
