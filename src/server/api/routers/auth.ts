@@ -33,7 +33,7 @@ export const authRouter = router({
     }
 
     try {
-      const users = await db.execute("SELECT * FROM `user`"); // simple test
+      const users = await db.select().from(schema.user).execute(); // simple test
       console.log("Users:", users);
       return { success: true, users };
     } catch (err) {
