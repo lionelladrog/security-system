@@ -10,9 +10,11 @@ const sslConfig = process.env.DB_CA_CERT
   ? { ca: process.env.DB_CA_CERT.replace(/\\n/g, "\n") }
   : undefined;
 
-const poolConnection = mysql.createPool({
+const pool = mysql.createPool({
   uri: process.env.DATABASE_URL,
+  waitForConnections: true,
+  connectionLimit: 1,
   ssl: sslConfig,
 });
 
-export const db = drizzle(poolConnection, { schema, mode: "default" });
+export const db = drizzle(pool, { schema, mode: "default" });
