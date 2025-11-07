@@ -6,11 +6,9 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
-let sslConfig;
-
-if (process.env.DB_CA_CERT) {
-  sslConfig = { ca: process.env.DB_CA_CERT };
-}
+const sslConfig = process.env.DB_CA_CERT
+  ? { ca: process.env.DB_CA_CERT.replace(/\\n/g, "\n") }
+  : undefined;
 
 const poolConnection = mysql.createPool({
   uri: process.env.DATABASE_URL,
