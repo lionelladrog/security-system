@@ -16,6 +16,7 @@ export default function TestDbPage() {
         alert("✅ Connexion DB réussie !");
       } else {
         alert("❌ Erreur connexion DB: " + data.error);
+        console.log("error:", data.err);
       }
     } catch (err) {
       alert("❌ Erreur inconnue verifier vos paremetre: " + err);
