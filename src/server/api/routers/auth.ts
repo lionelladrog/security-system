@@ -27,19 +27,6 @@ function signRefreshToken(payload: object) {
 }
 
 export const authRouter = router({
-  testDB: publicProcedure.query(async () => {
-    if (!process.env.DATABASE_URL) {
-      return { success: false, error: "DATABASE_URL not set" };
-    }
-
-    try {
-      const users = await db.select().from(schema.site).execute(); // simple test
-      console.log("Users:", users);
-      return { success: true, users };
-    } catch (err) {
-      return { success: false, error: (err as Error).message };
-    }
-  }),
   login: publicProcedure
     .input(
       z.object({
