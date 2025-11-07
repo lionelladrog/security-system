@@ -32,21 +32,11 @@ export const authRouter = router({
       return { success: false, error: "DATABASE_URL not set" };
     }
 
-    const pool = mysql.createPool({
-      uri: process.env.DATABASE_URL,
-      waitForConnections: true,
-      connectionLimit: 1,
-    });
-
     try {
-      const db = drizzle(pool, { schema, mode: "default" });
-      console.log(db);
-
       await db.execute("SELECT 1"); // simple test
-      await pool.end();
+
       return { success: true };
     } catch (err) {
-      await pool.end();
       return { success: false, error: (err as Error).message };
     }
   }),
