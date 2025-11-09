@@ -11,8 +11,6 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { TRPCError } from "@trpc/server";
-import mysql from "mysql2/promise";
-import { drizzle } from "drizzle-orm/mysql2";
 import * as schema from "@/server/db/schema"; // adapte ton chemin
 
 const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_SECRET!;
@@ -28,6 +26,8 @@ function signRefreshToken(payload: object) {
 
 export const authRouter = router({
   testDB: publicProcedure.query(async () => {
+    console.log("test database");
+
     if (!process.env.DATABASE_URL) {
       return { success: false, error: "DATABASE_URL not set" };
     }

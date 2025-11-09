@@ -8,10 +8,13 @@ export default function TestDbPage() {
   const dbTester = trpc.auth.testDB.useQuery(undefined, {
     enabled: false, // on trigger manuellement
   });
+  console.log(dbTester.data);
 
   const handleTest = async () => {
     setLoading(true);
     await dbTester.refetch();
+    console.log(dbTester.data);
+
     if (dbTester.data?.success) {
       alert("DB connection successful!");
     } else {
