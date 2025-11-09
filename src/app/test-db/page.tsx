@@ -18,9 +18,7 @@ export default function TestDbPage() {
     if (result.data?.success) {
       alert("✅ DB connection successful!");
     } else {
-      alert(
-        "❌ DB connection failed: " + (result.data?.error ?? "Unknown error")
-      );
+      alert("❌ DB connection failed: " + (result.data ?? "Unknown error"));
     }
 
     setLoading(false);
