@@ -40,11 +40,8 @@ function LoginForm({ relogin, afterLogin }: LoginFormProps) {
       {
         onSuccess: (data) => {
           if (data) {
-            console.log("data:", data);
-
             toast.success("Login successful!");
             setUser(data);
-            console.log("relogin:", relogin, afterLogin);
 
             if (relogin && afterLogin) {
               afterLogin();
