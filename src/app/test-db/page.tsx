@@ -1,27 +1,34 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function TestDbPage() {
   const [loading, setLoading] = useState(false);
+
   const dbTester = trpc.auth.testDB.useQuery(undefined, {
-    enabled: false, // on déclenche manuellement
+    enabled: false,
   });
 
-  const handleTest = async () => {
-    setLoading(true);
-
-    // 🔥 refetch() retourne directement la nouvelle data et l'erreur éventuelle
-    const result = await dbTester.refetch();
-
-    if (result.data?.success) {
-      alert("✅ DB connection successful!");
-    } else {
-      alert("❌ DB connection failed: " + (result.data ?? "Unknown error"));
+  useEffect(() => {
+    if (loading) {
+      if (dbTester.data) {
+        if (dbTester.data.success) {
+          alert("DB connection successful!");
+        } else {
+          alert("DB connection failed: " + dbTester.data);
+        }
+        setLoading(false);
+      } else if (dbTester.error) {
+        alert("Error during DB test: " + dbTester.error.message);
+        setLoading(false);
+      }
     }
+  }, [dbTester.data, dbTester.error, loading]);
 
-    setLoading(false);
+  const handleTest = () => {
+    setLoading(true);
+    dbTester.refetch();
   };
 
   return (

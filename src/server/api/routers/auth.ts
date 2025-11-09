@@ -55,7 +55,7 @@ export const authRouter = router({
         .select()
         .from(user)
         .where(eq(user.email, input.email))
-        // .limit(1)
+        .limit(1)
         .execute();
       console.log("result", result);
 
