@@ -35,7 +35,6 @@ export const authRouter = router({
     try {
       // récupère tous les users avec Drizzle
       const users = await db.select().from(schema.user).execute();
-      console.log("Users:", users);
 
       return { success: true, users };
     } catch (err) {
@@ -57,7 +56,6 @@ export const authRouter = router({
         .where(eq(user.email, input.email))
         .limit(1)
         .execute();
-      console.log("result", result);
 
       if (result.length === 0)
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
