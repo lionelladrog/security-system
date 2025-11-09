@@ -34,7 +34,6 @@ function LoginForm({ relogin, afterLogin }: LoginFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log(email, password);
 
     loginMutation.mutate(
       { email, password },
@@ -45,6 +44,8 @@ function LoginForm({ relogin, afterLogin }: LoginFormProps) {
 
             toast.success("Login successful!");
             setUser(data);
+            console.log("relogin:", relogin, afterLogin);
+
             if (relogin && afterLogin) {
               afterLogin();
             } else {
