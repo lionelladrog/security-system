@@ -50,6 +50,7 @@ import {
   loadImageAsBase64,
   getMonthName,
 } from "@/lib/utils";
+import userStore from "@/store/userStore";
 
 function AttendanceReports() {
   const [dateRange, setDateRange] = useState<{
@@ -60,6 +61,7 @@ function AttendanceReports() {
     to: undefined,
   });
 
+  const user = userStore((state) => state.user);
   const sites = siteStore((state) => state.site);
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedSite, setSelectedSite] = useState("all");
@@ -444,16 +446,19 @@ function AttendanceReports() {
             View detailed attendance analytics and reports
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={exportToExcel}>
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Excel
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportToPDF}>
-            <FileDown className="h-4 w-4 mr-2" />
-            PDF
-          </Button>
-        </div>
+
+        {user?.role === "admin" && (
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={exportToExcel}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportToPDF}>
+              <FileDown className="h-4 w-4 mr-2" />
+              PDF
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Filters */}

@@ -273,7 +273,7 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
         {
           title: "Attendance Rate",
           value: `${attendanceRate}%`,
-          total: "This Month",
+          total: "Today",
           icon: Calendar,
           color: "text-blue-600",
           bgColor: "bg-blue-50",
