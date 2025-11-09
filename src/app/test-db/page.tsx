@@ -6,20 +6,23 @@ import { useState } from "react";
 export default function TestDbPage() {
   const [loading, setLoading] = useState(false);
   const dbTester = trpc.auth.testDB.useQuery(undefined, {
-    enabled: false, // on trigger manuellement
+    enabled: false, // on déclenche manuellement
   });
-  console.log(dbTester.data);
 
   const handleTest = async () => {
     setLoading(true);
-    await dbTester.refetch();
-    console.log(dbTester.data);
 
-    if (dbTester.data?.success) {
-      alert("DB connection successful!");
+    // 🔥 refetch() retourne directement la nouvelle data et l'erreur éventuelle
+    const result = await dbTester.refetch();
+
+    if (result.data?.success) {
+      alert("✅ DB connection successful!");
     } else {
-      alert("DB connection failed: " + dbTester.data);
+      alert(
+        "❌ DB connection failed: " + (result.data?.error ?? "Unknown error")
+      );
     }
+
     setLoading(false);
   };
 

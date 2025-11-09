@@ -8,12 +8,12 @@ if (!process.env.DATABASE_URL) {
 
 const sslConfig = process.env.DB_CA_CERT
   ? { ca: process.env.DB_CA_CERT.replace(/\\n/g, "\n") }
-  : undefined;
+  : { rejectUnauthorized: true };
 
 const pool = mysql.createPool({
   uri: process.env.DATABASE_URL,
   waitForConnections: true,
-  connectionLimit: 1,
+  connectionLimit: 5,
   ssl: sslConfig,
 });
 
