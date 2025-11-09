@@ -311,58 +311,59 @@ function StaffAttendance() {
       )}
 
       {/* Date Selector */}
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Select Date</CardTitle>
+              <CardDescription>
+                Choose a date to mark attendance
+              </CardDescription>
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(selectedDate, "PPP")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) =>
+                    date && (setSelectedDate(date), setSelectedMonth("all"))
+                  }
+                  disabled={user?.role !== "admin" && isDateDisabled}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Today's Status */}
       {user?.role === "viewer" ? null : (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Select Date</CardTitle>
-                <CardDescription>
-                  Choose a date to mark attendance
-                </CardDescription>
-              </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(selectedDate, "PPP")}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) =>
-                      date && (setSelectedDate(date), setSelectedMonth("all"))
-                    }
-                    disabled={user?.role !== "admin" && isDateDisabled}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            <CardDescription>
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </CardDescription>
           </CardHeader>
+          <CardContent>
+            <Button className="w-full" onClick={handleOpenAttendanceForm}>
+              <Clock className="h-4 w-4 mr-2" />
+              Record Attendance
+            </Button>
+          </CardContent>
         </Card>
       )}
-
-      {/* Today's Status */}
-      <Card>
-        <CardHeader>
-          <CardDescription>
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button className="w-full" onClick={handleOpenAttendanceForm}>
-            <Clock className="h-4 w-4 mr-2" />
-            Record Attendance
-          </Button>
-        </CardContent>
-      </Card>
 
       {/* Staff Table */}
       <Card>

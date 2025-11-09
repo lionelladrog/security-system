@@ -96,3 +96,10 @@ export interface AttendanceRecord {
   hours: string;
   notes: string;
 }
+
+export type StatAccumulator = {
+  presentCount: number;
+  lateCount: number;
+  absentCount: number;
+  total: number;
+};

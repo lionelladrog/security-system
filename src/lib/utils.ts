@@ -70,7 +70,7 @@ export const getAttendanceStats = (
           }
         }
 
-        if ("travelAllowance" in attendances[i]) {
+        if ("sumTravelAllowance" in attendances[i]) {
           stats.travelAllowance += Number(attendances[i].sumTravelAllowance);
         }
       }

@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { AttendanceTableRecord } from "@/type";
-import { format } from "date-fns";
+
 import {
   Card,
   CardContent,
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/card";
 import { AttendanceStats } from "@/components/AttendanceStats";
 import { Calendar, CheckCircle, XCircle, Clock } from "lucide-react";
-import { AttendanceDailyStats } from "@/type";
+import { AttendanceDailyStats, StatAccumulator } from "@/type";
 
 interface AttendanceChartProps {
   staffRecords: AttendanceTableRecord[];
@@ -230,26 +230,32 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
   }, [staffRecords]);
 
   useEffect(() => {
-    const today = format(new Date(), "MMM d");
+    if (chartData.length > 0) {
+      const monthlyStat = chartData.reduce<StatAccumulator>(
+        (acc, curr) => ({
+          presentCount: acc.presentCount + curr.presentCount,
+          lateCount: acc.lateCount + curr.lateCount,
+          absentCount: acc.absentCount + curr.absentCount,
+          total: acc.total + curr.total,
+        }),
+        {
+          presentCount: 0,
+          lateCount: 0,
+          absentCount: 0,
+          total: 0,
+        }
+      );
 
-    const todayData = chartData.find((d) => {
-      // console.log("d.date", d.date, today);
+      const { presentCount, absentCount, lateCount, total } = monthlyStat;
 
-      return d.date === today;
-    });
-
-    // console.log(todayData);
-
-    if (todayData) {
-      const { presentCount, absentCount, lateCount, total } = todayData;
       const attendanceRate =
-        total > 0 ? Math.round((presentCount / total) * 100) : 0;
+        total > 0 ? Math.round((presentCount / chartData.length) * 100) : 0;
 
       setDailyStat([
         {
           title: "Present Days",
           value: presentCount.toString(),
-          total: total.toString(),
+          total: chartData.length.toString(),
           icon: CheckCircle,
           color: "text-green-600",
           bgColor: "bg-green-50",
@@ -257,7 +263,7 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
         {
           title: "Absent Days",
           value: absentCount.toString(),
-          total: total.toString(),
+          total: chartData.length.toString(),
           icon: XCircle,
           color: "text-red-600",
           bgColor: "bg-red-50",
@@ -265,7 +271,7 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
         {
           title: "Late Arrivals",
           value: lateCount.toString(),
-          total: total.toString(),
+          total: chartData.length.toString(),
           icon: Clock,
           color: "text-orange-600",
           bgColor: "bg-orange-50",
@@ -273,7 +279,7 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
         {
           title: "Attendance Rate",
           value: `${attendanceRate}%`,
-          total: "Today",
+          total: "This month",
           icon: Calendar,
           color: "text-blue-600",
           bgColor: "bg-blue-50",
