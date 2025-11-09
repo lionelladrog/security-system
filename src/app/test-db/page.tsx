@@ -9,6 +9,7 @@ export default function TestDbPage() {
   const dbTester = trpc.auth.testDB.useQuery(undefined, {
     enabled: false,
   });
+  console.log(dbTester.data);
 
   useEffect(() => {
     if (loading) {
