@@ -338,7 +338,7 @@ export const reportSingle = async (
 };
 
 function getEmployeeStats(arr: AttendanceStatsReport[]) {
-  let employeeStats = {
+  const employeeStats = {
     employeeId: "",
     name: "",
     break: 0,
