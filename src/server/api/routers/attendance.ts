@@ -237,7 +237,7 @@ export const attendanceRouter = router({
 
         const totalRecords = countQuery[0]?.totalRecords ?? 0;
 
-        let col_to_select = {
+        const col_to_select = {
           staffId: staffMember.id,
           employeeId: staffMember.employeeId,
           firstName: staffMember.firstName,
