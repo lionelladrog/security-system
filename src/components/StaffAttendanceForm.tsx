@@ -144,7 +144,7 @@ export default function StaffAttendanceForm({
     if (watchCheckIn && watchCheckOut) {
       setHours(hours.toString());
     }
-  }, [watchCheckIn, watchCheckOut, watchBreakTime]);
+  }, [watchCheckIn, watchCheckOut, watchBreakTime, hours]);
 
   const calculateHoursWorked = (
     watchCheckIn: string,
