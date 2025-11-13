@@ -20,7 +20,8 @@ export const calculateHours = (
 
 export const getAttendanceStats = (
   attendances: AttendanceStatsReport[],
-  totalDays: number = 0
+  nbOfday: number,
+  forAll: boolean = false
 ) => {
   const stats = {
     present: 0,
@@ -37,8 +38,21 @@ export const getAttendanceStats = (
   const sites: number[] = [];
   const sitesName: string[] = [];
 
+  const nb_of_day = attendances
+    .reduce((acc: string[], item) => {
+      if ("date" in item && item.date) {
+        const dateStr =
+          item.date instanceof Date ? item.date.toISOString() : item.date;
+        if (!acc.includes(dateStr)) {
+          acc.push(dateStr);
+        }
+      }
+      return acc;
+    }, [])
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime()).length;
+
   for (let i = 0; i < attendances.length; i++) {
-    if ("status" in attendances[i]) {
+    if (forAll) {
       if (!staffs.includes(attendances[i].staffId)) {
         staffs.push(attendances[i].staffId);
         if (
@@ -49,61 +63,76 @@ export const getAttendanceStats = (
           stats.present += Number(attendances[i].sumPresent);
           stats.absent += Number(attendances[i].sumAbsent);
           stats.late += Number(attendances[i].sumLate);
-          if (totalDays > 0) {
-            stats.attendanceRate +=
-              Number(attendances[i].sumPresent) +
-              Number(attendances[i].sumAbsent) / totalDays;
-          }
-        } else {
-          switch (attendances[i].status) {
-            case "present":
-              stats.present++;
-              break;
-            case "absent":
-              stats.absent++;
-              break;
-            case "late":
-              stats.late++;
-              break;
-            default:
-              break;
-          }
         }
 
         if ("sumTravelAllowance" in attendances[i]) {
           stats.travelAllowance += Number(attendances[i].sumTravelAllowance);
         }
       }
+    } else {
+      if ("status" in attendances[i]) {
+        switch (attendances[i].status?.toLocaleLowerCase()) {
+          case "present":
+            stats.present++;
+            break;
+          case "absent":
+            stats.absent++;
+            break;
+          case "late":
+            stats.late++;
+            break;
+          default:
+            break;
+        }
+      }
+      if ("travelAllowance" in attendances[i]) {
+        stats.travelAllowance += Number(attendances[i].travelAllowance);
+      }
+    }
 
-      if (attendances[i].sites) {
-        const name = attendances[i].sites?.split(",");
-        if (name && name?.length > 0) {
-          for (let j = 0; j < name.length; j++) {
-            if (!sitesName.includes(name[j].trim().toLowerCase())) {
-              sitesName.push(name[j].trim().toLowerCase());
-              stats.sites++;
-            }
+    if (attendances[i].sites && sites.length !== 0) {
+      const name = attendances[i].sites?.split(",");
+      if (name && name?.length > 0) {
+        for (let j = 0; j < name.length; j++) {
+          if (!sitesName.includes(name[j].trim().toLowerCase())) {
+            sitesName.push(name[j].trim().toLowerCase());
+            stats.sites++;
           }
         }
-      } else if (
-        "siteId" in attendances[i] &&
-        !sites.includes(attendances[i].siteId!)
-      ) {
-        sites.push(attendances[i].siteId!);
-        stats.sites++;
       }
-      if ("sumHours" in attendances[i]) {
-        stats.hours += Number(attendances[i].sumHours);
-      } else if ("hours" in attendances[i]) {
-        stats.hours += Number(attendances[i].hours);
-      }
+    } else if (
+      "siteId" in attendances[i] &&
+      !sites.includes(attendances[i].siteId!)
+    ) {
+      sites.push(attendances[i].siteId!);
+      stats.sites++;
+    } else if (
+      "site" in attendances[i] &&
+      !sitesName.includes(attendances[i].site)
+    ) {
+      sitesName.push(attendances[i].site);
+      stats.sites++;
+    }
+    if ("sumHours" in attendances[i]) {
+      stats.hours += Number(attendances[i].sumHours);
+    } else if ("hours" in attendances[i]) {
+      stats.hours += Number(attendances[i].hours);
     }
   }
 
-  stats.attendanceRate = stats.attendanceRate;
-  stats.notMarked = staffs.length - stats.present - stats.absent - stats.late;
-  stats.totalRecord = attendances.length;
+  if (forAll) {
+    stats.attendanceRate = stats.present + stats.absent + stats.late;
+  } else {
+  }
 
+  if (nb_of_day > 0) {
+    stats.attendanceRate = !forAll
+      ? Number(stats.present) + Number(stats.absent) / nb_of_day
+      : Number(stats.present) + Number(stats.absent) / nbOfday;
+  }
+
+  stats.notMarked = staffs.length - stats.present - stats.absent - stats.late;
+  stats.totalRecord = nb_of_day;
   return stats;
 };
 
@@ -127,6 +156,12 @@ export const loadImageAsBase64 = async (url: string): Promise<string> => {
     reader.readAsDataURL(blob);
   });
 };
+
+export function decimalToHourMin(decimalHours: number) {
+  const hours = Math.floor(decimalHours);
+  const minutes = Math.round((decimalHours - hours) * 60);
+  return `${hours}h${minutes.toString().padStart(2, "0")}min`;
+}
 
 export function getMonthName(monthNumber: number) {
   const months = [
@@ -156,4 +191,9 @@ export function daysElapsed(date: Date): number {
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
   return diffDays;
+}
+
+export function capitalizeFirstLetter(string: string) {
+  if (!string) return "";
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }

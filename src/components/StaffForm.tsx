@@ -76,6 +76,8 @@ export const StaffForm = ({ callback }: StaffFormProps) => {
           callback(false);
         },
         onError: (error) => {
+          console.log("error:", error.message);
+
           toast.error(error.message, { duration: 10000 });
         },
       });

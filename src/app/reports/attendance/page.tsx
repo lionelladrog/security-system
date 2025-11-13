@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -7,15 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -31,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import * as Switch from "@radix-ui/react-switch";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, Search, FileDown, FileSpreadsheet } from "lucide-react";
 import { format } from "date-fns";
@@ -40,17 +33,15 @@ import { StatsType, AttendanceStatsReport } from "@/type";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import siteStore from "@/store/siteStore";
-import {
-  StatsSkeleton,
-  AttendanceReportTableSkeleton,
-} from "@/components/Skeleton";
-
+import { StatsSkeleton } from "@/components/Skeleton";
+import { reportAll, reportSingle } from "./utils/pdf-report";
 import {
   getAttendanceStats,
   loadImageAsBase64,
   getMonthName,
 } from "@/lib/utils";
 import userStore from "@/store/userStore";
+import { SingleStaffReport, MultipleStaffReport } from "./templates";
 
 function AttendanceReports() {
   const [dateRange, setDateRange] = useState<{
@@ -63,6 +54,8 @@ function AttendanceReports() {
 
   const user = userStore((state) => state.user);
   const sites = siteStore((state) => state.site);
+  const [batchPrint, setBatchPrint] = useState(false);
+  const [batchIsvisible, setBatchIsvisible] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedSite, setSelectedSite] = useState("all");
   const [searchName, setSearchName] = useState("");
@@ -122,6 +115,21 @@ function AttendanceReports() {
   }, [queryParams, Attendances]);
 
   useEffect(() => {
+    const isFiltered =
+      searchName !== "" ||
+      selectedSite !== "all" ||
+      selectedMonth !== "all" ||
+      dateRange.from != undefined ||
+      dateRange.to != undefined;
+
+    if (isFiltered) {
+      setBatchIsvisible(true);
+    } else {
+      setBatchIsvisible(false);
+    }
+  }, [searchName, selectedMonth, dateRange, selectedSite]);
+
+  useEffect(() => {
     if (Attendances.data?.totalDays) {
       setTotalDays(Attendances.data.totalDays);
     }
@@ -135,26 +143,50 @@ function AttendanceReports() {
 
           return {
             ...item,
-
-            sites: String(item.sites),
+            sites: String(item.sites ?? ""),
             sumPresent: Number(item.sumPresent ?? 0),
             sumAbsent: Number(item.sumAbsent ?? 0),
             sumLate: Number(item.sumLate ?? 0),
             sumHours: Number(item.sumHours ?? 0),
             avgHours: Number(item.avgHours ?? 0),
-            status: "",
-            siteId: 0,
-            hours: 0,
             sumTravelAllowance: Number(item.sumTravelAllowance ?? 0),
-
             attendanceRate: rate,
+            status: (item as AttendanceStatsReport).status ?? "",
+            site: (item as AttendanceStatsReport).site ?? "",
+            date: (item as AttendanceStatsReport).date ?? null,
+            checkIn: (item as AttendanceStatsReport).checkIn ?? null,
+            checkOut: (item as AttendanceStatsReport).checkOut ?? null,
+            approvedBy: 0,
+            siteId: 0,
           };
         }
       );
 
       const nbOfday = Attendances.data?.totalDays || 0;
-
-      const stats = getAttendanceStats(parsed, nbOfday);
+      let stats;
+      const isFiltered =
+        searchName !== "" ||
+        selectedSite !== "all" ||
+        selectedMonth !== "all" ||
+        dateRange.from != undefined ||
+        dateRange.to != undefined;
+      if (isFiltered) {
+        parsed.forEach((item) => {
+          if (item) {
+            delete item.sumPresent;
+            delete item.sumAbsent;
+            delete item.sumLate;
+            delete item.sumHours;
+            delete item.avgHours;
+            delete item.sumTravelAllowance;
+            delete item.sites;
+            delete item.attendanceRate;
+          }
+        });
+        stats = getAttendanceStats(parsed, nbOfday);
+      } else {
+        stats = getAttendanceStats(parsed, nbOfday, true);
+      }
 
       setStats(stats);
 
@@ -166,132 +198,46 @@ function AttendanceReports() {
 
   const exportToExcel = async () => {
     try {
+      const ExcelJS = (await import("exceljs")).default;
+      const { reportAllExcel, reportSingleExcel } = await import(
+        "./utils/excel-report"
+      );
+
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet("Staff Reports");
 
-      const response = await fetch("/logo.png");
-      const imageBuffer = await response.arrayBuffer();
-      const imageId = workbook.addImage({
-        buffer: imageBuffer,
-        extension: "png",
-      });
+      const isFiltered =
+        searchName !== "" ||
+        selectedSite !== "all" ||
+        selectedMonth !== "all" ||
+        dateRange.from != undefined ||
+        dateRange.to != undefined;
 
-      sheet.addImage(imageId, {
-        tl: { col: 0, row: 0 },
-        ext: { width: 150, height: 50 },
-      });
-
-      sheet.mergeCells("C1", "H2");
-      const titleCell = sheet.getCell("C1");
-      titleCell.value = "Staff Attendance Reports";
-      titleCell.font = { size: 18, bold: true, color: { argb: "00739A" } };
-      titleCell.alignment = { vertical: "middle", horizontal: "center" };
-
-      let currentRow = 4;
-      const metaRows: [string, string][] = [];
-
-      if (dateRange.from || dateRange.to) {
-        const dateRangeText =
-          dateRange.from && dateRange.to
-            ? `${format(dateRange.from, "MMM dd, yyyy")} - ${format(
-                dateRange.to,
-                "MMM dd, yyyy"
-              )}`
-            : dateRange.from
-            ? `From ${format(dateRange.from, "MMM dd, yyyy")}`
-            : `Until ${format(dateRange.to!, "MMM dd, yyyy")}`;
-        metaRows.push(["Period:", dateRangeText]);
+      if (!isFiltered) {
+        await reportAllExcel(
+          workbook,
+          sheet,
+          filtredAttendances,
+          totalDays,
+          Stats.attendanceRate,
+          Stats.travelAllowance,
+          Stats.hours,
+          dateRange,
+          searchName,
+          selectedMonth,
+          selectedSite
+        );
+      } else {
+        await reportSingleExcel(
+          workbook,
+          sheet,
+          filtredAttendances,
+          searchName,
+          dateRange,
+          selectedMonth,
+          selectedSite
+        );
       }
-
-      if (searchName) metaRows.push(["Employee:", searchName]);
-      if (selectedMonth !== "all")
-        metaRows.push(["Month:", getMonthName(Number(selectedMonth))]);
-      if (selectedSite !== "all") metaRows.push(["Site:", selectedSite]);
-      metaRows.push(["Total Days:", totalDays.toString()]);
-
-      for (const [label, value] of metaRows) {
-        const labelCell = sheet.getCell(`B${currentRow}`);
-        const valueCell = sheet.getCell(`C${currentRow}`);
-        labelCell.value = label;
-        labelCell.font = { bold: true };
-        valueCell.value = value;
-        currentRow++;
-      }
-
-      currentRow += 1;
-
-      const headers = [
-        "Employee ID",
-        "Name",
-        "Site",
-        "Days",
-        "Present",
-        "Absent",
-        "Late",
-        "Rate",
-        "Hours",
-        "Travel",
-      ];
-
-      const headerRow = sheet.addRow(headers);
-      headerRow.eachCell((cell) => {
-        cell.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "00739A" },
-        };
-        cell.font = { color: { argb: "FFFFFF" }, bold: true };
-        cell.alignment = { horizontal: "center" };
-      });
-
-      filtredAttendances.forEach((report) => {
-        sheet.addRow([
-          report.employeeId ?? "",
-          `${report.firstName ?? ""} ${report.lastName ?? ""}`.trim(),
-          report.sites ?? "",
-          totalDays ?? 0,
-          report.sumPresent ?? 0,
-          report.sumAbsent ?? 0,
-          report.sumLate ?? 0,
-          `${report.attendanceRate?.toFixed(2)}%`,
-          report.sumHours?.toFixed(1) ?? "0.0",
-          `$${report.sumTravelAllowance?.toFixed(2)}`,
-        ]);
-      });
-
-      const footerRow = sheet.addRow([
-        "Total",
-        "",
-        "",
-        totalDays ?? 0,
-        "",
-        "",
-        "",
-        `${(Stats.attendanceRate * 100).toFixed(2)}%`,
-        Stats.hours?.toFixed(2) ?? "0.00",
-        `Rs${Stats.travelAllowance?.toFixed(2) ?? "0.00"}`,
-      ]);
-
-      footerRow.eachCell((cell) => {
-        cell.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "00739A" },
-        };
-        cell.font = { color: { argb: "FFFFFF" }, bold: true };
-      });
-
-      sheet.columns.forEach((col) => {
-        let maxLength = 0;
-        if (col) {
-          (col as ExcelJS.Column).eachCell({ includeEmpty: true }, (cell) => {
-            const len = cell.value ? cell.value.toString().length : 10;
-            if (len > maxLength) maxLength = len;
-          });
-        }
-
-        col.width = maxLength + 2;
-      });
 
       const buffer = await workbook.xlsx.writeBuffer();
       saveAs(
@@ -317,117 +263,116 @@ function AttendanceReports() {
   const exportToPDF = async () => {
     try {
       const jsPDF = (await import("jspdf")).default;
-      const autoTable = (await import("jspdf-autotable")).default;
-
-      const doc = new jsPDF();
       const base64Image = await loadImageAsBase64("/logo.png");
-      doc.addImage(base64Image, "PNG", 10, 10, 50, 15);
-      const startTextY = 10 + 20 + 5;
-      doc.setFontSize(10);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 200, 15, {
-        align: "right",
-      });
 
-      doc.setFontSize(18);
-      doc.text("Staff Attendance Reports", 65, startTextY);
+      const isFiltered =
+        searchName !== "" ||
+        selectedSite !== "all" ||
+        selectedMonth !== "all" ||
+        dateRange.from != undefined ||
+        dateRange.to != undefined;
 
-      doc.setFontSize(10);
+      if (!isFiltered) {
+        const doc = new jsPDF();
+        doc.addImage(base64Image, "PNG", 10, 10, 50, 15);
+        const startTextY = 10 + 20 + 5;
+        doc.setFontSize(10);
+        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 200, 15, {
+          align: "right",
+        });
+        doc.setFontSize(18);
+        doc.text("Staff Attendance Reports", 65, startTextY);
 
-      let init = 15;
-      const coef = 6;
+        await reportAll(
+          doc,
+          startTextY,
+          6,
+          15,
+          filtredAttendances,
+          totalDays,
+          Stats.attendanceRate,
+          Stats.travelAllowance,
+          Stats.hours
+        );
 
-      if (dateRange.from || dateRange.to) {
-        const dateRangeText =
-          dateRange.from && dateRange.to
-            ? `${format(dateRange.from, "MMM dd, yyyy")} - ${format(
-                dateRange.to,
-                "MMM dd, yyyy"
-              )}`
-            : dateRange.from
-            ? `From ${format(dateRange.from, "MMM dd, yyyy")}`
-            : `Until ${format(dateRange.to!, "MMM dd, yyyy")}`;
+        doc.save(`Attendance_Report.pdf`);
+      } else {
+        if (batchPrint) {
+          const sorted = filtredAttendances.sort((a, b) =>
+            a.employeeId.localeCompare(b.employeeId)
+          );
+          const grouped: AttendanceStatsReport[][] = sorted.reduce(
+            (acc: AttendanceStatsReport[][], curr) => {
+              if (
+                acc.length > 0 &&
+                acc[acc.length - 1][0].employeeId === curr.employeeId
+              ) {
+                acc[acc.length - 1].push(curr);
+              } else {
+                acc.push([curr]);
+              }
+              return acc;
+            },
+            []
+          );
 
-        doc.text(`Period: ${dateRangeText}`, 14, startTextY + init);
-        init += coef;
+          for (const group of grouped) {
+            const doc = new jsPDF();
+            doc.addImage(base64Image, "PNG", 10, 10, 50, 15);
+            const startTextY = 10 + 20 + 5;
+            doc.setFontSize(10);
+            doc.text(`Generated: ${new Date().toLocaleDateString()}`, 200, 15, {
+              align: "right",
+            });
+            doc.setFontSize(18);
+            doc.text("Staff Attendance Report", 65, startTextY);
+
+            const name = `${group[0].employeeId}_${group[0].firstName}_${
+              group[0].lastName
+            }_${new Date().toLocaleDateString()}`;
+            await reportSingle(
+              doc,
+              startTextY,
+              6,
+              15,
+              group,
+              name,
+              dateRange.from,
+              dateRange.to,
+              selectedMonth
+            );
+
+            doc.save(`Attendance_Report_${name.replace(" ", "_")}.pdf`);
+          }
+          return;
+        } else {
+          const doc = new jsPDF();
+          doc.addImage(base64Image, "PNG", 10, 10, 50, 15);
+          const startTextY = 10 + 20 + 5;
+          doc.setFontSize(10);
+          doc.text(`Generated: ${new Date().toLocaleDateString()}`, 200, 15, {
+            align: "right",
+          });
+          doc.setFontSize(18);
+          doc.text("Staff Attendance Reports", 65, startTextY);
+
+          await reportSingle(
+            doc,
+            startTextY,
+            6,
+            15,
+            filtredAttendances,
+            searchName,
+            dateRange.from,
+            dateRange.to,
+            selectedMonth
+          );
+
+          doc.save(
+            `attendance_reports_${new Date().toISOString().split("T")[0]}.pdf`
+          );
+        }
       }
-      if (searchName) {
-        doc.text(`Employee: ${searchName}`, 14, startTextY + init);
-        init += coef;
-      }
-      if (selectedMonth !== "all") {
-        const month = getMonthName(Number(selectedMonth));
-        doc.text(`Month: ${month}`, 14, startTextY + init);
-        init += coef;
-      }
-      if (selectedSite !== "all") {
-        doc.text(`Site: ${selectedSite}`, 14, startTextY + init);
-        init += coef;
-      }
-
-      doc.text(`Total Days: ${totalDays}`, 14, startTextY + init);
-      init += coef;
-
-      const tableData = filtredAttendances.map((report) => [
-        report.employeeId ?? "",
-        `${report.firstName} ${report.lastName}`,
-        report.sites ?? "",
-        totalDays ?? 0,
-        report.sumPresent ?? 0,
-        report.sumAbsent ?? 0,
-        report.sumLate ?? 0,
-        `${(report.attendanceRate ?? 0).toFixed(2)}%`,
-        report.sumHours != null ? report.sumHours.toFixed(1) : "0.0",
-        `$${
-          report.sumTravelAllowance != null
-            ? report.sumTravelAllowance.toFixed(2)
-            : "0.00"
-        }`,
-      ]);
-
-      autoTable(doc, {
-        head: [
-          [
-            "Employee ID",
-            "Name",
-            "Site",
-            "Days",
-            "Present",
-            "Absent",
-            "Late",
-            "Rate",
-            "Hours",
-            "Travel",
-          ],
-        ],
-        body: tableData,
-        startY: startTextY + init + 5,
-        theme: "striped",
-        headStyles: { fillColor: [0, 115, 154] },
-        styles: { fontSize: 8 },
-        foot: [
-          [
-            "Total",
-            "",
-            "",
-            totalDays,
-            "",
-            "",
-            "",
-            `${(Stats.attendanceRate * 10).toFixed(2)}%`,
-            Stats.hours.toFixed(2),
-            `Rs${Stats.travelAllowance}`,
-          ],
-        ],
-        footStyles: { fillColor: [0, 115, 154], fontSize: 10 },
-      });
-
-      doc.save(
-        `attendance_reports_${new Date().toISOString().split("T")[0]}.pdf`
-      );
-
-      import("sonner").then(({ toast }) => {
-        toast.success("Exported to PDF successfully!");
-      });
     } catch (error) {
       import("sonner").then(({ toast }) => {
         toast.error("Failed to export to PDF");
@@ -436,6 +381,27 @@ function AttendanceReports() {
     }
   };
 
+  const attendanceReportTableTemplate = useCallback(
+    () =>
+      searchName !== "" ||
+      selectedSite !== "all" ||
+      selectedMonth !== "all" ||
+      dateRange.from != undefined ||
+      dateRange.to != undefined ? (
+        <SingleStaffReport
+          attendances={filtredAttendances}
+          isLoading={Attendances.isLoading}
+          totalDays={totalDays}
+        />
+      ) : (
+        <MultipleStaffReport
+          attendances={filtredAttendances}
+          isLoading={Attendances.isLoading}
+          totalDays={totalDays}
+        />
+      ),
+    [searchName, selectedSite, filtredAttendances, Attendances.isLoading]
+  );
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -449,6 +415,20 @@ function AttendanceReports() {
 
         {user?.role === "admin" && (
           <div className="flex gap-2 flex-wrap">
+            {batchIsvisible && (
+              <div className="flex items-center">
+                <span className="text-sm pr-2">Bulk printing</span>
+                <Switch.Root
+                  checked={batchPrint}
+                  onCheckedChange={() => setBatchPrint(!batchPrint)}
+                  id="hasPendingRequest"
+                  className=" relative h-[20px] w-[32px] cursor-default rounded-full bg-primary/50 shadow-primary/70 outline-none focus:shadow-primary data-[state=checked]:bg-primary"
+                >
+                  <Switch.Thumb className="block size-[18px] translate-x-0.5 rounded-full bg-white shadow transition-transform duration-100 will-change-transform data-[state=checked]:translate-x-[13px]" />
+                </Switch.Root>
+              </div>
+            )}
+
             <Button variant="outline" size="sm" onClick={exportToExcel}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Excel
@@ -664,90 +644,18 @@ function AttendanceReports() {
       {/* Staff Reports Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Individual Staff Reports</CardTitle>
+          <CardTitle>
+            {" "}
+            <span className="capitalize">{searchName}</span> Attendance Reports
+          </CardTitle>
           <CardDescription>
             Showing {filtredAttendances.length} of{" "}
-            {filtredAttendances.length ?? 0} staff members
+            {filtredAttendances.length ?? 0} attendance record
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
-            {Attendances.isLoading ? (
-              <AttendanceReportTableSkeleton />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Employee ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Site</TableHead>
-                    <TableHead>Total Days</TableHead>
-                    <TableHead>Present</TableHead>
-                    <TableHead>Absent</TableHead>
-                    <TableHead>Late</TableHead>
-                    <TableHead>Rate</TableHead>
-                    <TableHead>Total Hours</TableHead>
-                    <TableHead>Avg Hours</TableHead>
-                    <TableHead>Travel (Rs)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtredAttendances.length > 0 ? (
-                    filtredAttendances.map((report) => (
-                      <TableRow key={report.employeeId}>
-                        <TableCell className="font-medium">
-                          {report.employeeId}
-                        </TableCell>
-                        <TableCell>
-                          {report.firstName} {report.lastName}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{report.sites}</Badge>
-                        </TableCell>
-                        <TableCell>{totalDays}</TableCell>
-                        <TableCell className="text-green-600">
-                          {report.sumPresent}
-                        </TableCell>
-                        <TableCell className="text-red-600">
-                          {report.sumAbsent}
-                        </TableCell>
-                        <TableCell className="text-orange-600">
-                          {report.sumLate}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              Number(report.attendanceRate) >= 90
-                                ? "bg-green-100 text-green-800 hover:bg-green-100"
-                                : report.attendanceRate &&
-                                  report.attendanceRate >= 75
-                                ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                                : "bg-red-100 text-red-800 hover:bg-red-100"
-                            }
-                          >
-                            {report.attendanceRate?.toFixed(1)}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{report.sumHours?.toFixed(2)}</TableCell>
-                        <TableCell>{report.avgHours?.toFixed(2)}</TableCell>
-                        <TableCell>
-                          {report.sumTravelAllowance?.toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={11}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No data available for the selected filters
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            )}
+            {attendanceReportTableTemplate()}
           </div>
         </CardContent>
       </Card>

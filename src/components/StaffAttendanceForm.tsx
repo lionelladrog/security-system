@@ -50,7 +50,6 @@ export default function StaffAttendanceForm({
   const user = userStore((state) => state.user);
 
   const [sites, setSites] = useState<Site[]>([]);
-  const [status, setStatus] = useState("absent");
   const [hours, setHours] = useState<string>("0");
   const [lockEdit, setLockEdit] = useState(false);
 
@@ -117,7 +116,7 @@ export default function StaffAttendanceForm({
         hours: attendanceRecord.hours?.toString() || "",
         approvedBy: attendanceRecord.approvedBy || user?.id || 0,
         notes: attendanceRecord.notes || "",
-        status: attendanceRecord.status || "absent",
+        status: attendanceRecord.status || "",
         hasPendingRequest: attendanceRecord.hasPendingRequest || false,
         createdAt: attendanceRecord.createdAt
           ? new Date(attendanceRecord.createdAt)
@@ -135,7 +134,7 @@ export default function StaffAttendanceForm({
         hours: "",
         approvedBy: user?.id || 0,
         notes: "",
-        status: "absent",
+        status: "",
         hasPendingRequest: false,
       });
     }
@@ -143,18 +142,6 @@ export default function StaffAttendanceForm({
 
   useEffect(() => {
     if (watchCheckIn && watchCheckOut) {
-      const hours = calculateHoursWorked(
-        watchCheckIn,
-        watchCheckOut,
-        watchBreakTime
-      );
-
-      if (Number(hours) >= 1) {
-        setStatus("present");
-      } else {
-        setStatus("absent");
-      }
-
       setHours(hours.toString());
     }
   }, [watchCheckIn, watchCheckOut, watchBreakTime]);
@@ -186,6 +173,20 @@ export default function StaffAttendanceForm({
   };
 
   const handleFormSubmit = (data: NewStaffAttendanceRecordForm) => {
+    const hours = calculateHoursWorked(
+      watchCheckIn,
+      watchCheckOut,
+      watchBreakTime
+    );
+    let status;
+    if (Number(hours) >= 1) {
+      status = "present";
+    } else if (data.siteId === 12) {
+      status = "off";
+    } else {
+      status = "absent";
+    }
+
     data.hours = hours.toString();
     data.status = status;
     data.date = data.date instanceof Date ? data.date : new Date(data.date);
@@ -384,9 +385,13 @@ export default function StaffAttendanceForm({
             render={({ field }) => (
               <Select
                 disabled={lockEdit}
-                onValueChange={(val) =>
-                  field.onChange(val ? Number(val) : undefined)
-                }
+                onValueChange={(val) => {
+                  if (val === "12") {
+                    form.setValue("checkIn", "00:00");
+                    form.setValue("checkOut", "00:00");
+                  }
+                  return field.onChange(val ? Number(val) : undefined);
+                }}
                 value={field.value ? String(field.value) : ""}
               >
                 <SelectTrigger>

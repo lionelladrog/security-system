@@ -55,7 +55,7 @@ export const staffMember = mysqlTable(
     employeeId: varchar("employee_id", { length: 50 }).notNull().unique(),
     firstName: varchar("first_name", { length: 100 }).notNull(),
     lastName: varchar("last_name", { length: 100 }).notNull(),
-    email: varchar("email", { length: 255 }).unique().default(""),
+    email: varchar("email", { length: 255 }).default(""),
     phone: varchar("phone", { length: 20 }),
     position: varchar("position", { length: 100 }),
     department: varchar("department", { length: 100 }),
@@ -70,7 +70,7 @@ export const staffMember = mysqlTable(
       staffMember.employeeId
     ),
     userIdIndex: index("idx_staff_members_user_id").on(staffMember.userId),
-    emailIndex: uniqueIndex("idx_staff_members_email").on(staffMember.email),
+    // emailIndex: uniqueIndex("idx_staff_members_email").on(staffMember.email),
   })
 );
 

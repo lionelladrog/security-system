@@ -5,7 +5,17 @@ import {
   staffAttendanceRecords,
   staffMember,
 } from "../../db/schema/userSchema";
-import { eq, gte, lte, and, sql, getTableColumns, SQL, or } from "drizzle-orm";
+import {
+  eq,
+  gte,
+  lte,
+  and,
+  sql,
+  getTableColumns,
+  SQL,
+  or,
+  desc,
+} from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { newStaffAttendanceRecordZod } from "@/type";
 import { format } from "date-fns";
@@ -227,30 +237,43 @@ export const attendanceRouter = router({
 
         const totalRecords = countQuery[0]?.totalRecords ?? 0;
 
-        const results = await ctx.db
-          .select({
-            // ...getTableColumns(staffAttendanceRecords),
-            staffId: staffAttendanceRecords.staffId,
-            employeeId: staffMember.employeeId,
-            firstName: staffMember.firstName,
-            lastName: staffMember.lastName,
-            // totalDays: totalDays,
-            sumPresent: sql`SUM(CASE WHEN ${staffAttendanceRecords.status} = 'present' THEN 1 ELSE 0 END)`,
-            sumAbsent: sql`SUM(CASE WHEN ${staffAttendanceRecords.status} = 'absent' THEN 1 ELSE 0 END)`,
-            sumLate: sql`SUM(CASE WHEN ${staffAttendanceRecords.status} = 'late' THEN 1 ELSE 0 END)`,
-            sumHours: sql`SUM(${staffAttendanceRecords.hours})`,
-            avgHours: sql`AVG(${staffAttendanceRecords.hours})`,
-            sumTravelAllowance: sql`SUM(${staffAttendanceRecords.travelAllowance})`,
-            sites: sql`GROUP_CONCAT(DISTINCT ${site.name} SEPARATOR ', ')`,
-            // site: site.name,
-            attendanceRate: sql`
+        let col_to_select = {
+          staffId: staffMember.id,
+          employeeId: staffMember.employeeId,
+          firstName: staffMember.firstName,
+          lastName: staffMember.lastName,
+          sumPresent: sql`SUM(CASE WHEN ${staffAttendanceRecords.status} = 'present' THEN 1 ELSE 0 END)`,
+          sumAbsent: sql`SUM(CASE WHEN ${staffAttendanceRecords.status} = 'absent' THEN 1 ELSE 0 END)`,
+          sumLate: sql`SUM(CASE WHEN ${staffAttendanceRecords.status} = 'late' THEN 1 ELSE 0 END)`,
+          sumHours: sql`SUM(${staffAttendanceRecords.hours})`,
+          avgHours: sql`AVG(${staffAttendanceRecords.hours})`,
+          sumTravelAllowance: sql`SUM(${staffAttendanceRecords.travelAllowance})`,
+          sites: sql`GROUP_CONCAT(DISTINCT ${site.name} SEPARATOR ', ')`,
+          attendanceRate: sql`
             COALESCE(
               (SUM(CASE WHEN ${staffAttendanceRecords.status} = 'present' THEN 1 ELSE 0 END)
               + SUM(CASE WHEN ${staffAttendanceRecords.status} = 'late' THEN 1 ELSE 0 END))
               / NULLIF(${totalDays},0), 0
             )
           `,
-          })
+        };
+        if (Object.keys(input).length !== 0) {
+          delete (col_to_select as Partial<typeof col_to_select>).sumPresent;
+          delete (col_to_select as Partial<typeof col_to_select>).sumAbsent;
+          delete (col_to_select as Partial<typeof col_to_select>).sumLate;
+          delete (col_to_select as Partial<typeof col_to_select>).sumHours;
+          delete (col_to_select as Partial<typeof col_to_select>).avgHours;
+          delete (col_to_select as Partial<typeof col_to_select>)
+            .sumTravelAllowance;
+          delete (col_to_select as Partial<typeof col_to_select>).sites;
+          delete (col_to_select as Partial<typeof col_to_select>)
+            .attendanceRate;
+          Object.assign(col_to_select, getTableColumns(staffAttendanceRecords));
+          Object.assign(col_to_select, { site: site.name });
+        }
+
+        const query = ctx.db
+          .select(col_to_select)
           .from(staffAttendanceRecords)
           .innerJoin(
             staffMember,
@@ -259,12 +282,20 @@ export const attendanceRouter = router({
           .innerJoin(site, eq(site.id, staffAttendanceRecords.siteId))
           .where(and(...conditions))
           .groupBy(
-            // staffAttendanceRecords.staffId,
-            staffMember.employeeId,
+            ...(Object.keys(input).length !== 0
+              ? [staffAttendanceRecords.id, staffAttendanceRecords.date]
+              : [staffMember.employeeId]),
             staffMember.firstName,
             staffMember.lastName
           );
 
+        if (Object.keys(input).length !== 0) {
+          query.orderBy(
+            desc(staffAttendanceRecords.date),
+            staffMember.employeeId
+          );
+        }
+        const results = await query;
         return {
           totalRecords,
           totalDays: typeof totalDays === "number" ? totalDays : null,

@@ -33,22 +33,35 @@ export interface AttendanceTableRecord extends NewStaffAttendanceRecord {
   lastName: string;
   site: string;
 }
-export interface AttendanceStatsReport {
+// export interface AttendanceStatsReport {
+//   staffId: number;
+//   employeeId: string;
+//   firstName: string;
+//   lastName: string;
+//   status?: string;
+//   sumPresent?: number;
+//   sumAbsent?: number;
+//   sumLate?: number;
+//   sumHours?: number;
+//   avgHours?: number;
+//   sumTravelAllowance?: number;
+//   attendanceRate?: number;
+//   sites?: string;
+//   siteId?: number;
+//   hours?: number;
+// }
+
+export interface AttendanceStatsReport extends AttendanceTableRecord {
   staffId: number;
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-  status?: string;
   sumPresent?: number;
   sumAbsent?: number;
   sumLate?: number;
   sumHours?: number;
   avgHours?: number;
+
   sumTravelAllowance?: number;
   attendanceRate?: number;
   sites?: string;
-  siteId?: number;
-  hours?: number;
 }
 
 export interface AttendanceDailyStats {

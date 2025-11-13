@@ -28,6 +28,7 @@ import { AttendanceTableRecord } from "../type";
 import { trpc } from "../lib/trpc";
 import userStore from "../store/userStore";
 import { StaffTableSkeleton } from "@/components/Skeleton";
+import { getStatusBadge } from "@/lib/helperTemplate";
 
 interface AttendanceTableProps {
   filteredStaffs: AttendanceTableRecord[];
@@ -48,39 +49,6 @@ export function AttendanceTable({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const AttendanceMutation = trpc.attendance.delete.useMutation();
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "present":
-        return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-            Present
-          </Badge>
-        );
-      case "absent":
-        return <Badge variant="destructive">Absent</Badge>;
-      case "late":
-        return (
-          <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">
-            Late
-          </Badge>
-        );
-      case "half-day":
-        return (
-          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-            Half Day
-          </Badge>
-        );
-      case "leave":
-        return (
-          <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">
-            WFH
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
 
   const openDeleteDialog = (staffId: number) => {
     setStaffToDelete(staffId);

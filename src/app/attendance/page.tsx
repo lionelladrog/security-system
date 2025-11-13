@@ -200,10 +200,10 @@ function StaffAttendance() {
         updatedAt: new Date(item.updatedAt),
         approvedAt: new Date(item.approvedAt),
         status: item.status ? item.status : "",
-        hours: 0,
+        hours: "",
       }));
 
-      const stats = getAttendanceStats(newparsed);
+      const stats = getAttendanceStats(newparsed, 0, false);
 
       setAttendanceStats(stats);
     }
