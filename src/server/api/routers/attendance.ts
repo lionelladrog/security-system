@@ -4,6 +4,7 @@ import {
   site,
   staffAttendanceRecords,
   staffMember,
+  attendanceStatus,
 } from "../../db/schema/userSchema";
 import {
   eq,
@@ -118,6 +119,7 @@ export const attendanceRouter = router({
             firstName: staffMember.firstName,
             lastName: staffMember.lastName,
             site: site.name,
+            status: attendanceStatus.name,
           })
           .from(staffAttendanceRecords)
           .innerJoin(
@@ -128,6 +130,10 @@ export const attendanceRouter = router({
             )
           )
           .innerJoin(site, and(eq(site.id, staffAttendanceRecords.siteId)))
+          .innerJoin(
+            attendanceStatus,
+            and(eq(attendanceStatus.id, staffAttendanceRecords.statusId))
+          )
           .orderBy(staffAttendanceRecords.id)
           .where(and(...conditions));
 
@@ -237,22 +243,28 @@ export const attendanceRouter = router({
 
         const totalRecords = countQuery[0]?.totalRecords ?? 0;
 
-        let col_to_select = {
+        const col_to_select = {
           staffId: staffMember.id,
           employeeId: staffMember.employeeId,
           firstName: staffMember.firstName,
           lastName: staffMember.lastName,
-          sumPresent: sql`SUM(CASE WHEN ${staffAttendanceRecords.status} = 'present' THEN 1 ELSE 0 END)`,
-          sumAbsent: sql`SUM(CASE WHEN ${staffAttendanceRecords.status} = 'absent' THEN 1 ELSE 0 END)`,
-          sumLate: sql`SUM(CASE WHEN ${staffAttendanceRecords.status} = 'late' THEN 1 ELSE 0 END)`,
+
+          sumPresent: sql`SUM(CASE WHEN ${staffAttendanceRecords.statusId} = 1 THEN 1 ELSE 0 END)`,
+          sumAbsent: sql`SUM(CASE WHEN ${staffAttendanceRecords.statusId} = 3 THEN 1 ELSE 0 END)`,
+          sumLate: sql`SUM(CASE WHEN ${staffAttendanceRecords.statusId} = 2 THEN 1 ELSE 0 END)`,
+          sumLocalLeave: sql`SUM(CASE WHEN ${staffAttendanceRecords.statusId} = 5 THEN 1 ELSE 0 END)`,
+          sumSickLeave: sql`SUM(CASE WHEN ${staffAttendanceRecords.statusId} = 6 THEN 1 ELSE 0 END)`,
+          sumOff: sql`SUM(CASE WHEN ${staffAttendanceRecords.statusId} = 9 THEN 1 ELSE 0 END)`,
+          sumTraining: sql`SUM(CASE WHEN ${staffAttendanceRecords.statusId} = 10 THEN 1 ELSE 0 END)`,
           sumHours: sql`SUM(${staffAttendanceRecords.hours})`,
           avgHours: sql`AVG(${staffAttendanceRecords.hours})`,
           sumTravelAllowance: sql`SUM(${staffAttendanceRecords.travelAllowance})`,
           sites: sql`GROUP_CONCAT(DISTINCT ${site.name} SEPARATOR ', ')`,
           attendanceRate: sql`
             COALESCE(
-              (SUM(CASE WHEN ${staffAttendanceRecords.status} = 'present' THEN 1 ELSE 0 END)
-              + SUM(CASE WHEN ${staffAttendanceRecords.status} = 'late' THEN 1 ELSE 0 END))
+              (SUM(CASE WHEN ${staffAttendanceRecords.statusId} = 1 THEN 1 ELSE 0 END)
+              + SUM(CASE WHEN ${staffAttendanceRecords.statusId} = 2 THEN 1 ELSE 0 END)
+              + SUM(CASE WHEN ${staffAttendanceRecords.statusId} = 10 THEN 1 ELSE 0 END))
               / NULLIF(${totalDays},0), 0
             )
           `,
@@ -262,6 +274,10 @@ export const attendanceRouter = router({
           delete (col_to_select as Partial<typeof col_to_select>).sumAbsent;
           delete (col_to_select as Partial<typeof col_to_select>).sumLate;
           delete (col_to_select as Partial<typeof col_to_select>).sumHours;
+          delete (col_to_select as Partial<typeof col_to_select>).sumLocalLeave;
+          delete (col_to_select as Partial<typeof col_to_select>).sumSickLeave;
+          delete (col_to_select as Partial<typeof col_to_select>).sumOff;
+          delete (col_to_select as Partial<typeof col_to_select>).sumTraining;
           delete (col_to_select as Partial<typeof col_to_select>).avgHours;
           delete (col_to_select as Partial<typeof col_to_select>)
             .sumTravelAllowance;
@@ -269,7 +285,10 @@ export const attendanceRouter = router({
           delete (col_to_select as Partial<typeof col_to_select>)
             .attendanceRate;
           Object.assign(col_to_select, getTableColumns(staffAttendanceRecords));
-          Object.assign(col_to_select, { site: site.name });
+          Object.assign(col_to_select, {
+            site: site.name,
+            status: attendanceStatus.name,
+          });
         }
 
         const query = ctx.db
@@ -280,6 +299,10 @@ export const attendanceRouter = router({
             eq(staffMember.id, staffAttendanceRecords.staffId)
           )
           .innerJoin(site, eq(site.id, staffAttendanceRecords.siteId))
+          .innerJoin(
+            attendanceStatus,
+            and(eq(attendanceStatus.id, staffAttendanceRecords.statusId))
+          )
           .where(and(...conditions))
           .groupBy(
             ...(Object.keys(input).length !== 0
@@ -296,6 +319,7 @@ export const attendanceRouter = router({
           );
         }
         const results = await query;
+
         return {
           totalRecords,
           totalDays: typeof totalDays === "number" ? totalDays : null,
@@ -336,11 +360,12 @@ export const attendanceRouter = router({
           .set({
             staffId: input.staffId,
             date: input.date,
-            status: input.status,
+            statusId: input.statusId,
             checkIn: input.checkIn,
             checkOut: input.checkOut,
             breakTime: input.breakTime,
             hours: input.hours,
+            otherHours: input.otherHours,
             siteId: input.siteId,
             travelAllowance: input.travelAllowance,
             notes: input.notes,
@@ -385,4 +410,8 @@ export const attendanceRouter = router({
         errorHandler(error);
       }
     }),
+  getAttendanceStatus: protectedProcedure.query(async ({ ctx }) => {
+    const status = await ctx.db.select().from(attendanceStatus);
+    return status;
+  }),
 });

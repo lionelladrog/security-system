@@ -35,12 +35,18 @@ import { CalendarIcon, UserPlus, Clock, Search } from "lucide-react";
 import { format } from "date-fns";
 import { trpc } from "@/lib/trpc";
 import { months } from "@/constant";
-import { AttendanceTableRecord, NewStaffMember, StatsType } from "@/type";
+import {
+  AttendanceTableRecord,
+  NewStaffMember,
+  StatsType,
+  AttendanceStatus as AttendanceStatusType,
+} from "@/type";
 import { StaffForm } from "@/components/StaffForm";
 import StaffAttendanceForm from "@/components/StaffAttendanceForm";
 import { AttendanceTable } from "@/components/AttendanceTable";
 import { getAttendanceStats } from "@/lib/utils";
 import { StatsCardsSkeleton } from "@/components/Skeleton";
+import { Toaster } from "@/components/ui/sonner";
 import userStore from "@/store/userStore";
 
 export interface StaffMember {
@@ -71,6 +77,14 @@ function StaffAttendance() {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  const AttendanceStatusData = trpc.attendance.getAttendanceStatus.useQuery(
+    undefined,
+    {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    }
+  );
 
   const [filtredAttendances, setAttendanceState] = useState<
     AttendanceTableRecord[]
@@ -107,6 +121,10 @@ function StaffAttendance() {
     present: 0,
     absent: 0,
     late: 0,
+    localLeave: 0,
+    sickLeave: 0,
+    offDuty: 0,
+    training: 0,
     sites: 0,
     travelAllowance: 0,
     attendanceRate: 0,
@@ -115,6 +133,9 @@ function StaffAttendance() {
     totalRecord: 0,
   });
   const [staffs, setStaffs] = useState<NewStaffMember[]>([]);
+  const [AttendanceStatus, setAttendanceStatus] = useState<
+    AttendanceStatusType[]
+  >([]);
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [showAttendanceForm, setShowAttendanceForm] = useState(false);
   const [isDelete, setStaffIsDelete] = useState<boolean>(false);
@@ -167,12 +188,18 @@ function StaffAttendance() {
   }, [showAddStaff, StaffsData]);
 
   useEffect(() => {
-    if (isDelete || !showAttendanceForm || queryParams) {
+    if (AttendanceStatusData.data) {
+      setAttendanceStatus(AttendanceStatusData.data);
+    }
+  }, [AttendanceStatusData.data]);
+
+  useEffect(() => {
+    if (isDelete || queryParams) {
       Attendances.refetch();
 
       setStaffIsDelete(false);
     }
-  }, [isDelete, showAttendanceForm, queryParams, Attendances]);
+  }, [isDelete, queryParams, Attendances]);
 
   useEffect(() => {
     if (recordToUpdate) {
@@ -229,6 +256,7 @@ function StaffAttendance() {
 
   return (
     <div className="space-y-6">
+      <Toaster position="bottom-right" />
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -347,14 +375,7 @@ function StaffAttendance() {
       {user?.role === "viewer" ? null : (
         <Card>
           <CardHeader>
-            <CardDescription>
-              {new Date().toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </CardDescription>
+            <CardDescription>{format(selectedDate, "PPP")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button className="w-full" onClick={handleOpenAttendanceForm}>
@@ -473,14 +494,21 @@ function StaffAttendance() {
         >
           <DialogHeader>
             <DialogTitle>
-              {recordToUpdate ? "Update Attendance" : "Record Attendance"}
+              {recordToUpdate
+                ? `Update Attendance of ${format(
+                    recordToUpdate.date,
+                    "eee, PPP"
+                  )}`
+                : `Record Attendance on ${format(selectedDate, "eee, PPP")}`}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="mb-2">
               Enter attendance details with clock in/out times
             </DialogDescription>
           </DialogHeader>
           <StaffAttendanceForm
             staffs={staffs}
+            AttendanceStatus={AttendanceStatus}
+            attendanceCallBack={() => Attendances.refetch()}
             selectedDate={selectedDate}
             attendanceRecord={recordToUpdate}
             showAttendanceForm={showAttendanceForm}

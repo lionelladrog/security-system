@@ -19,11 +19,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AttendanceStats } from "@/components/AttendanceStats";
-import { Calendar, CheckCircle, XCircle, Clock } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Hospital,
+  House,
+  Presentation,
+  CircleOff,
+} from "lucide-react";
 import { AttendanceDailyStats, StatAccumulator } from "@/type";
 
 interface AttendanceChartProps {
   staffRecords: AttendanceTableRecord[];
+  isLoading: boolean;
 }
 
 interface ChartDataItem {
@@ -43,6 +53,14 @@ interface ChartDataItem {
     latePercent: number;
     presentCount: number;
     presentPercent: number;
+    localLeaveCount: number;
+    localLeavePercent: number;
+    sickLeaveCount: number;
+    sickLeavePercent: number;
+    offDutyCount: number;
+    offDutyPercent: number;
+    trainingCount: number;
+    trainingPercent: number;
     total: number;
   };
   type?: string;
@@ -67,6 +85,7 @@ interface CustomTooltipProps {
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
+
     return (
       <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
         <p className="font-medium mb-2">{label}</p>
@@ -98,6 +117,46 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
               {data.absentCount} ({data.absentPercent}%)
             </span>
           </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-[hsl(259,47%,39%)]" />
+              <span>Local Leave:</span>
+            </div>
+            <span className="font-medium">
+              {data.localLeaveCount} ({data.localLeavePercent}%)
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-[hsl(337,65%,40%)]" />
+              <span>Sick Leave:</span>
+            </div>
+            <span className="font-medium">
+              {data.sickLeaveCount} ({data.sickLeavePercent}%)
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-[hsl(192,57%,33%)]" />
+              <span>Training:</span>
+            </div>
+            <span className="font-medium">
+              {data.trainingCount} ({data.trainingPercent}%)
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-[hsl(220,15%,18%)]" />
+              <span>Off Duty:</span>
+            </div>
+            <span className="font-medium">
+              {data.offDutyCount} ({data.offDutyPercent}%)
+            </span>
+          </div>
+
           <div className="border-t border-border mt-2 pt-2">
             <div className="flex items-center justify-between gap-4">
               <span>Total Staff:</span>
@@ -130,7 +189,10 @@ const renderCustomLabel = (props: CustomLabelProps) => {
   );
 };
 
-export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
+export function AttendanceChart({
+  staffRecords,
+  isLoading,
+}: AttendanceChartProps) {
   const [dailyStat, setDailyStat] = useState<AttendanceDailyStats[] | null>(
     null
   );
@@ -184,18 +246,40 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
       const presentCount = dayRecords.filter((r) => {
         if (!staffs.includes(r.staffId)) {
           staffs.push(r.staffId);
-          return r.status === "present";
+          return r.statusId === 1;
         }
       }).length;
 
       const lateCount = dayRecords.filter((r) => {
         if (staffs.includes(r.staffId)) {
-          return r.status === "late";
+          return r.statusId === 2;
         }
       }).length;
       const absentCount = dayRecords.filter((r) => {
         if (staffs.includes(r.staffId)) {
-          return r.status === "absent";
+          return r.statusId === 3;
+        }
+      }).length;
+
+      const localLeaveCount = dayRecords.filter((r) => {
+        if (staffs.includes(r.staffId)) {
+          return r.statusId === 5;
+        }
+      }).length;
+
+      const sickLeaveCount = dayRecords.filter((r) => {
+        if (staffs.includes(r.staffId)) {
+          return r.statusId === 6;
+        }
+      }).length;
+      const trainingCount = dayRecords.filter((r) => {
+        if (staffs.includes(r.staffId)) {
+          return r.statusId === 10;
+        }
+      }).length;
+      const offDutyCount = dayRecords.filter((r) => {
+        if (staffs.includes(r.staffId)) {
+          return r.statusId === 9;
         }
       }).length;
 
@@ -204,6 +288,15 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
       const latePercent = total > 0 ? Math.round((lateCount / total) * 100) : 0;
       const absentPercent =
         total > 0 ? Math.round((absentCount / total) * 100) : 0;
+
+      const localLeavePercent =
+        total > 0 ? Math.round((localLeaveCount / total) * 100) : 0;
+      const sickLeavePercent =
+        total > 0 ? Math.round((sickLeaveCount / total) * 100) : 0;
+      const trainingPercent =
+        total > 0 ? Math.round((trainingCount / total) * 100) : 0;
+      const offDutyPercent =
+        total > 0 ? Math.round((offDutyCount / total) * 100) : 0;
 
       const year = new Date().getFullYear();
       const Fulldate = new Date(`${dateStr} ${year}`);
@@ -218,7 +311,19 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
         Present: presentPercent,
         Late: latePercent,
         Absent: absentPercent,
+        SickLeave: sickLeavePercent,
+        LocalLeave: localLeavePercent,
+        Training: trainingPercent,
+        OffDuty: offDutyPercent,
         presentCount,
+        localLeaveCount,
+        sickLeaveCount,
+        trainingCount,
+        offDutyCount,
+        localLeavePercent: localLeavePercent,
+        sickLeavePercent: sickLeavePercent,
+        trainingPercent: trainingPercent,
+        offDutyPercent: offDutyPercent,
         lateCount,
         absentCount,
         presentPercent,
@@ -236,20 +341,41 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
           presentCount: acc.presentCount + curr.presentCount,
           lateCount: acc.lateCount + curr.lateCount,
           absentCount: acc.absentCount + curr.absentCount,
+          localLeaveCount: acc.localLeaveCount + curr.localLeaveCount,
+          sickLeaveCount: acc.sickLeaveCount + curr.sickLeaveCount,
+          trainingCount: acc.trainingCount + curr.trainingCount,
+          offDutyCount: acc.offDutyCount + curr.offDutyCount,
           total: acc.total + curr.total,
         }),
         {
           presentCount: 0,
           lateCount: 0,
           absentCount: 0,
+          localLeaveCount: 0,
+          sickLeaveCount: 0,
+          trainingCount: 0,
+          offDutyCount: 0,
           total: 0,
         }
       );
 
-      const { presentCount, absentCount, lateCount, total } = monthlyStat;
+      const {
+        presentCount,
+        absentCount,
+        localLeaveCount,
+        sickLeaveCount,
+        trainingCount,
+        offDutyCount,
+        lateCount,
+        total,
+      } = monthlyStat;
 
       const attendanceRate =
-        total > 0 ? Math.round((presentCount / chartData.length) * 100) : 0;
+        total > 0
+          ? Math.round(
+              ((presentCount + trainingCount) / chartData.length) * 100
+            )
+          : 0;
 
       setDailyStat([
         {
@@ -261,12 +387,12 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
           bgColor: "bg-green-50",
         },
         {
-          title: "Absent Days",
-          value: absentCount.toString(),
+          title: "Training Days",
+          value: trainingCount.toString(),
           total: chartData.length.toString(),
-          icon: XCircle,
-          color: "text-red-600",
-          bgColor: "bg-red-50",
+          icon: Presentation,
+          color: "text-cyan-600",
+          bgColor: "bg-cyan-50",
         },
         {
           title: "Late Arrivals",
@@ -276,6 +402,41 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
           color: "text-orange-600",
           bgColor: "bg-orange-50",
         },
+        {
+          title: "Off Duty Days",
+          value: offDutyCount.toString(),
+          total: chartData.length.toString(),
+          icon: CircleOff,
+          color: "text-gray-600",
+          bgColor: "bg-gray-50",
+        },
+
+        {
+          title: "Absent Days",
+          value: absentCount.toString(),
+          total: chartData.length.toString(),
+          icon: XCircle,
+          color: "text-red-600",
+          bgColor: "bg-red-50",
+        },
+
+        {
+          title: "Local Leave Days",
+          value: localLeaveCount.toString(),
+          total: chartData.length.toString(),
+          icon: House,
+          color: "text-purple-600",
+          bgColor: "bg-purple-50",
+        },
+        {
+          title: "Sick Leave Days",
+          value: sickLeaveCount.toString(),
+          total: chartData.length.toString(),
+          icon: Hospital,
+          color: "text-pink-600",
+          bgColor: "bg-pink-50",
+        },
+
         {
           title: "Attendance Rate",
           value: `${attendanceRate}%`,
@@ -288,6 +449,9 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
     }
   }, [chartData]);
 
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
   return (
     <div className="">
       <AttendanceStats stats={dailyStat} />
@@ -330,14 +494,38 @@ export function AttendanceChart({ staffRecords }: AttendanceChartProps) {
                 <Bar
                   dataKey="Present"
                   stackId="a"
-                  fill="hsl(142, 76%, 36%)"
+                  fill="hsl(145,55%,41%)"
                   label={renderCustomLabel}
+                />
+                <Bar
+                  dataKey="Training"
+                  stackId="a"
+                  fill="hsl(192,91%,37%)"
+                  // label={renderCustomLabel}
+                />
+                <Bar
+                  dataKey="LocalLeave"
+                  stackId="a"
+                  fill="hsl(259,72%,52%)"
+                  // label={renderCustomLabel}
+                />
+                <Bar
+                  dataKey="SickLeave"
+                  stackId="a"
+                  fill="hsl(330,70%,54%)"
+                  // label={renderCustomLabel}
+                />
+                <Bar
+                  dataKey="OffDuty"
+                  stackId="a"
+                  fill="hsl(210,15%,43%)"
+                  // label={renderCustomLabel}
                 />
 
                 <Bar
                   dataKey="Late"
                   stackId="a"
-                  fill="hsl(38, 92%, 50%)"
+                  fill="hsl(25,94%,54%)"
                   // label={renderCustomLabel}
                 />
                 <Bar

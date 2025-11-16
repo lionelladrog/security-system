@@ -60,6 +60,7 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
               <TableHead>Check in</TableHead>
               <TableHead>Check out</TableHead>
               <TableHead>break time</TableHead>
+              <TableHead>Other time</TableHead>
               <TableHead>Total Hours</TableHead>
               <TableHead>Travelling</TableHead>
               <TableHead>Status</TableHead>
@@ -117,6 +118,7 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
                     <TableCell>{report.checkIn?.substring(0, 5)}</TableCell>
                     <TableCell>{report.checkOut?.substring(0, 5)}</TableCell>
                     <TableCell>{report.breakTime}min</TableCell>
+                    <TableCell>{report.otherHours}min</TableCell>
                     <TableCell>
                       {decimalToHourMin(Number(report.hours))}
                     </TableCell>
@@ -164,7 +166,11 @@ export const MultipleStaffReport: React.FC<StaffReportProps> = ({
               <TableHead>Site</TableHead>
               <TableHead>Total Days</TableHead>
               <TableHead>Present</TableHead>
+              <TableHead>Training</TableHead>
+              <TableHead>Off Duty</TableHead>
               <TableHead>Absent</TableHead>
+              <TableHead>Local Leave</TableHead>
+              <TableHead>Sick Leave</TableHead>
               <TableHead>Late</TableHead>
               <TableHead>Rate</TableHead>
               <TableHead>Total Hours</TableHead>
@@ -174,8 +180,11 @@ export const MultipleStaffReport: React.FC<StaffReportProps> = ({
           </TableHeader>
           <TableBody>
             {attendances.length > 0 ? (
-              attendances.map((report) => (
-                <TableRow key={report.employeeId} className="hover:bg-slate-50">
+              attendances.map((report, index) => (
+                <TableRow
+                  key={`${report.employeeId}-${index}`}
+                  className="hover:bg-slate-50"
+                >
                   <TableCell className="font-medium">
                     {report.employeeId}
                   </TableCell>
@@ -194,8 +203,20 @@ export const MultipleStaffReport: React.FC<StaffReportProps> = ({
                   <TableCell className="text-green-600">
                     {report.sumPresent}
                   </TableCell>
+                  <TableCell className="text-cyan-600">
+                    {report.sumTraining}
+                  </TableCell>
+                  <TableCell className="text-gray-600">
+                    {report.sumOff}
+                  </TableCell>
                   <TableCell className="text-red-600">
                     {report.sumAbsent}
+                  </TableCell>
+                  <TableCell className="text-purple-600">
+                    {report.sumLocalLeave}
+                  </TableCell>
+                  <TableCell className="text-pink-600">
+                    {report.sumSickLeave}
                   </TableCell>
                   <TableCell className="text-orange-600">
                     {report.sumLate}

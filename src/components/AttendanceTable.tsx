@@ -29,6 +29,8 @@ import { trpc } from "../lib/trpc";
 import userStore from "../store/userStore";
 import { StaffTableSkeleton } from "@/components/Skeleton";
 import { getStatusBadge } from "@/lib/helperTemplate";
+import { decimalToHourMin } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface AttendanceTableProps {
   filteredStaffs: AttendanceTableRecord[];
@@ -76,6 +78,15 @@ export function AttendanceTable({
     return <StaffTableSkeleton />;
   }
 
+  const dateCounts = filteredStaffs.reduce((acc, report) => {
+    const dateKey = report.date
+      ? format(new Date(report.date), "dd-MM-yyyy")
+      : "";
+    acc[dateKey] = (acc[dateKey] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const renderedDates = new Set<string>();
+
   return (
     <div>
       {/* Delete Confirmation Dialog */}
@@ -102,6 +113,7 @@ export function AttendanceTable({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Date</TableHead>
             <TableHead>Employee ID</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Site</TableHead>
@@ -109,18 +121,28 @@ export function AttendanceTable({
             <TableHead>Check In</TableHead>
             <TableHead>Check Out</TableHead>
             <TableHead>Hours</TableHead>
-            <TableHead>Travel (Rs)</TableHead>
+            <TableHead>Travelling (Rs)</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredStaffs.length > 0 ? (
             filteredStaffs.map((member) => {
+              const dateKey = member.date
+                ? format(new Date(member.date), "dd-MM-yyyy")
+                : "";
+              const isFirstDateOccurrence = !renderedDates.has(dateKey);
+              if (isFirstDateOccurrence) renderedDates.add(dateKey);
               return (
                 <TableRow
                   key={member.id}
                   className={member?.hasPendingRequest ? "bg-primary/10" : ""}
                 >
+                  {isFirstDateOccurrence ? (
+                    <TableCell rowSpan={dateCounts[dateKey]} className="">
+                      {dateKey}
+                    </TableCell>
+                  ) : null}
                   <TableCell className="font-medium">
                     {member.employeeId}
                   </TableCell>
@@ -136,7 +158,7 @@ export function AttendanceTable({
                   <TableCell>{member?.checkIn || "-"}</TableCell>
                   <TableCell>{member?.checkOut || "-"}</TableCell>
                   <TableCell>
-                    {member?.hours ? `${member.hours}h` : "-"}
+                    {decimalToHourMin(Number(member?.hours) ?? 0)}
                   </TableCell>
                   <TableCell>
                     {member?.travelAllowance

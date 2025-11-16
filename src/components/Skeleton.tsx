@@ -37,7 +37,7 @@ export function StaffTableSkeleton() {
     "Check In",
     "Check Out",
     "Hours",
-    "Travel (Rs)",
+    "Travelling (Rs)",
     "Actions",
   ];
 
@@ -53,7 +53,7 @@ export function StaffTableSkeleton() {
         </TableHeader>
 
         <TableBody>
-          {Array.from({ length: 8 }).map((_, index) => (
+          {Array.from({ length: 9 }).map((_, index) => (
             <TableRow key={index}>
               {/* Employee ID */}
               <TableCell>
