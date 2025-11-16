@@ -81,11 +81,12 @@ export const staffAttendanceRecords = mysqlTable(
     id: int("id").primaryKey().autoincrement(),
     staffId: int("staff_id").notNull(),
     date: date("date").notNull(),
-    status: varchar("status", { length: 20 }), // 'present', 'late', 'absent', 'half-day', 'leave'
+    statusId: int("status_id"), // 'present', 'late', 'absent', 'half-day', 'leave'
     checkIn: time("check_in").notNull(),
     checkOut: time("check_out").notNull(),
     breakTime: int("break_time").notNull().default(0), // in minutes
     hours: decimal("hours", { precision: 4, scale: 2 }),
+    otherHours: decimal("other_hours", { precision: 4, scale: 2 }).default("0"),
     siteId: int("site_id").notNull(),
     travelAllowance: decimal("travel_allowance", {
       precision: 10,
@@ -109,6 +110,17 @@ export const staffAttendanceRecords = mysqlTable(
   })
 );
 
+// attendance status
+export const attendanceStatus = mysqlTable(
+  "attendance_status",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    name: varchar("name", { length: 255 }).notNull().unique(),
+  },
+  (attendanceStatus) => ({
+    name: uniqueIndex("idx_attendance_status_name").on(attendanceStatus.name),
+  })
+);
 // export type StaffAttendanceRecordsInsert = InferInsertModel<
 //   typeof staffAttendanceRecords
 // >;
@@ -159,3 +171,5 @@ export type NewStaffMember = typeof staffMember.$inferInsert;
 export type StaffAttendanceRecord = typeof staffAttendanceRecords.$inferSelect;
 export type NewStaffAttendanceRecord =
   typeof staffAttendanceRecords.$inferInsert;
+
+export type AttendanceStatus = typeof attendanceStatus.$inferSelect;

@@ -21,6 +21,7 @@ import {
   NewStaffAttendanceRecordForm,
   NewStaffMember,
   Site,
+  AttendanceStatus as AttendanceStatusType,
 } from "../type";
 import { trpc } from "../lib/trpc";
 import userStore from "../store/userStore";
@@ -30,7 +31,9 @@ interface AttendanceFormProps {
   selectedDate: Date;
   showAttendanceForm: boolean;
   staffs: NewStaffMember[];
+  AttendanceStatus: AttendanceStatusType[];
   formCallback: (show: boolean) => void;
+  attendanceCallBack: () => void;
 }
 
 export default function StaffAttendanceForm({
@@ -38,6 +41,8 @@ export default function StaffAttendanceForm({
   selectedDate,
   formCallback,
   staffs,
+  AttendanceStatus,
+  attendanceCallBack,
 }: AttendanceFormProps) {
   const SitesData = trpc.site.getSites.useQuery(undefined, {
     staleTime: 5 * 60 * 1000,
@@ -48,10 +53,12 @@ export default function StaffAttendanceForm({
   const attendanceCreateMutation = trpc.attendance.add.useMutation();
 
   const user = userStore((state) => state.user);
-
   const [sites, setSites] = useState<Site[]>([]);
   const [hours, setHours] = useState<string>("0");
   const [lockEdit, setLockEdit] = useState(false);
+  const [lockonWorking, setLockOnWorking] = useState(false);
+  const workingStatus = [1, 2, 4, 7];
+  const isSunday = selectedDate.getDay() === 0;
 
   const form = useForm({
     resolver: zodResolver(newStaffAttendanceRecordZod),
@@ -64,9 +71,13 @@ export default function StaffAttendanceForm({
       breakTime: 0,
       travelAllowance: "0",
       hours: "",
+      statusId: attendanceRecord?.statusId || 0,
       approvedBy: user?.id || 0,
       notes: "",
-      status: "absent",
+      otherHours:
+        attendanceRecord?.otherHours != null
+          ? attendanceRecord.otherHours.toString()
+          : "0",
       hasPendingRequest: false,
     },
   });
@@ -81,6 +92,7 @@ export default function StaffAttendanceForm({
   const watchCheckIn = watch("checkIn");
   const watchCheckOut = watch("checkOut");
   const watchBreakTime = watch("breakTime");
+  const watchOtherHours = watch("otherHours");
 
   useEffect(() => {
     if (SitesData.data) {
@@ -114,9 +126,13 @@ export default function StaffAttendanceForm({
         breakTime: attendanceRecord.breakTime || 0,
         travelAllowance: attendanceRecord.travelAllowance?.toString() || "0",
         hours: attendanceRecord.hours?.toString() || "",
+        otherHours:
+          attendanceRecord.otherHours != null
+            ? attendanceRecord.otherHours.toString()
+            : "0",
         approvedBy: attendanceRecord.approvedBy || user?.id || 0,
         notes: attendanceRecord.notes || "",
-        status: attendanceRecord.status || "",
+        statusId: attendanceRecord.statusId || 0,
         hasPendingRequest: attendanceRecord.hasPendingRequest || false,
         createdAt: attendanceRecord.createdAt
           ? new Date(attendanceRecord.createdAt)
@@ -127,29 +143,28 @@ export default function StaffAttendanceForm({
         date: selectedDate,
         siteId: attendanceRecord?.siteId || 0,
         staffId: attendanceRecord?.staffId || 0,
-        checkIn: "",
-        checkOut: "",
-        breakTime: 0,
+        checkIn: attendanceRecord?.checkIn || "",
+        checkOut: attendanceRecord?.checkOut || "",
+        breakTime: attendanceRecord?.breakTime || 0,
         travelAllowance: "0",
         hours: "",
+        otherHours:
+          attendanceRecord?.otherHours != null
+            ? attendanceRecord.otherHours.toString()
+            : "0",
         approvedBy: user?.id || 0,
         notes: "",
-        status: "",
+        statusId: attendanceRecord?.statusId || 0,
         hasPendingRequest: false,
       });
     }
   }, [attendanceRecord, staffs, sites, user, form, selectedDate]);
 
-  useEffect(() => {
-    if (watchCheckIn && watchCheckOut) {
-      setHours(hours.toString());
-    }
-  }, [watchCheckIn, watchCheckOut, watchBreakTime, hours]);
-
   const calculateHoursWorked = (
     watchCheckIn: string,
     watchCheckOut: string,
-    watchBreakTime: number | undefined
+    watchBreakTime: number | undefined,
+    watchOtherHours: string | undefined
   ) => {
     if (!watchCheckIn || !watchCheckOut) return "0.00";
 
@@ -163,37 +178,60 @@ export default function StaffAttendanceForm({
       outTotalMinutes += 24 * 60;
     }
 
-    const workedMinutes = watchBreakTime
+    let workedMinutes = watchBreakTime
       ? outTotalMinutes - inTotalMinutes - watchBreakTime
       : outTotalMinutes - inTotalMinutes;
 
+    if (watchOtherHours) {
+      workedMinutes += Number(watchOtherHours);
+    }
+
     const hours = Math.max(workedMinutes / 60, 0);
+
+    if (hours > 5) {
+      form.setValue("statusId", 1);
+    }
 
     return hours.toFixed(2);
   };
+
+  useEffect(() => {
+    if (watchCheckIn && watchCheckOut) {
+      const hours = calculateHoursWorked(
+        watchCheckIn,
+        watchCheckOut,
+        watchBreakTime,
+        watchOtherHours
+      );
+      setHours(hours.toString());
+    }
+  }, [
+    watchCheckIn,
+    watchCheckOut,
+    watchBreakTime,
+    watchOtherHours,
+    calculateHoursWorked,
+  ]);
 
   const handleFormSubmit = (data: NewStaffAttendanceRecordForm) => {
     const hours = calculateHoursWorked(
       watchCheckIn,
       watchCheckOut,
-      watchBreakTime
+      watchBreakTime,
+      watchOtherHours
     );
-    let status;
-    if (Number(hours) >= 1) {
-      status = "present";
-    } else if (data.siteId === 12) {
-      status = "off";
-    } else {
-      status = "absent";
-    }
 
     data.hours = hours.toString();
-    data.status = status;
+
     data.date = data.date instanceof Date ? data.date : new Date(data.date);
+
+    // console.log(data);
+    // return;
 
     if (!("id" in data)) {
       attendanceCreateMutation.mutate(data, {
         onSuccess: () => {
+          attendanceCallBack();
           toast.success("Attendance saved successfully!", { duration: 6000 });
           formCallback(false);
         },
@@ -204,6 +242,7 @@ export default function StaffAttendanceForm({
     } else {
       attendanceUpdateMutation.mutate(data, {
         onSuccess: () => {
+          attendanceCallBack();
           toast.success("Attendance updated successfully!", { duration: 8000 });
           formCallback(false);
         },
@@ -225,7 +264,7 @@ export default function StaffAttendanceForm({
           <div className="flex items-center justify-end">
             <label
               className="pr-[15px] text-[14px]  leading-none "
-              htmlFor="airplane-mode"
+              htmlFor="hasPendingRequest"
             >
               Request Admin
             </label>
@@ -275,9 +314,58 @@ export default function StaffAttendanceForm({
           />
           {errors.staffId && <p className="error">{errors.staffId.message}</p>}
         </div>
-
+        <div className="space-y-2">
+          <Label htmlFor="status">Status</Label>
+          <Controller
+            control={control}
+            name="statusId"
+            render={({ field }) => (
+              <Select
+                disabled={lockEdit}
+                onValueChange={(val) => {
+                  if (!workingStatus.includes(Number(val))) {
+                    form.setValue("checkIn", "00:00");
+                    form.setValue("checkOut", "00:00");
+                    form.setValue("otherHours", "0");
+                    form.setValue("breakTime", 0);
+                    form.setValue("siteId", 13);
+                    setHours("0");
+                    setLockOnWorking(true);
+                  } else {
+                    setLockOnWorking(false);
+                  }
+                  if (
+                    Number(val) === 5 ||
+                    Number(val) === 6 ||
+                    Number(val) === 13
+                  ) {
+                    form.setValue("siteId", 13);
+                  } else {
+                    form.setValue("siteId", 0);
+                  }
+                  return field.onChange(val ? Number(val) : undefined);
+                }}
+                value={field.value ? String(field.value) : ""}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Day status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AttendanceStatus.map((status) => (
+                    <SelectItem key={status.id} value={`${status.id}`}>
+                      {status.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.statusId && (
+            <p className="error">{errors.statusId.message}</p>
+          )}
+        </div>
         {/* Check-in / Check-out */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Check In Time</Label>
             <div className="flex gap-2 items-center">
@@ -287,7 +375,7 @@ export default function StaffAttendanceForm({
                 render={({ field }) => (
                   <Input
                     type="time"
-                    disabled={lockEdit}
+                    disabled={lockEdit || lockonWorking}
                     pattern="^([01]\d|2[0-3]):([0-5][05])$"
                     {...field}
                     value={field.value || ""}
@@ -306,7 +394,7 @@ export default function StaffAttendanceForm({
                 render={({ field }) => (
                   <Input
                     type="time"
-                    disabled={lockEdit}
+                    disabled={lockEdit || lockonWorking}
                     pattern="^([01]\d|2[0-3]):([0-5][05])$"
                     {...field}
                     value={field.value || ""}
@@ -314,6 +402,31 @@ export default function StaffAttendanceForm({
                 )}
               />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="otherHours">Other Time (min)</Label>
+            <div className="flex mt-2 items-center">
+              <Controller
+                control={control}
+                name="otherHours"
+                render={({ field }) => (
+                  <Input
+                    type="number"
+                    disabled={lockEdit || lockonWorking}
+                    className={isSunday ? "border-primary/50" : ""}
+                    step="0.01"
+                    min={0}
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    value={field.value || ""}
+                  />
+                )}
+              />
+            </div>
+            {errors.otherHours && (
+              <p className="error">{errors.otherHours.message}</p>
+            )}
           </div>
         </div>
 
@@ -328,7 +441,7 @@ export default function StaffAttendanceForm({
                 render={({ field }) => (
                   <Input
                     type="number"
-                    disabled={lockEdit}
+                    disabled={lockEdit || lockonWorking}
                     min={0}
                     {...field}
                     onChange={(e) => field.onChange(Number(e.target.value))}
@@ -351,7 +464,7 @@ export default function StaffAttendanceForm({
                 render={({ field }) => (
                   <Input
                     type="number"
-                    disabled={lockEdit}
+                    disabled={lockEdit || lockonWorking}
                     step="0.01"
                     min={0}
                     {...field}

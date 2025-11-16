@@ -41,7 +41,7 @@ export default function Home() {
 
   return (
     <>
-      <Toaster />
+      <Toaster position="top-right" />
     </>
   );
 }

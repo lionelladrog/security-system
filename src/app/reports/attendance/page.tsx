@@ -30,16 +30,11 @@ import { format } from "date-fns";
 import { trpc } from "@/lib/trpc";
 import { months } from "@/constant";
 import { StatsType, AttendanceStatsReport } from "@/type";
-import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import siteStore from "@/store/siteStore";
 import { StatsSkeleton } from "@/components/Skeleton";
 import { reportAll, reportSingle } from "./utils/pdf-report";
-import {
-  getAttendanceStats,
-  loadImageAsBase64,
-  getMonthName,
-} from "@/lib/utils";
+import { getAttendanceStats, loadImageAsBase64 } from "@/lib/utils";
 import userStore from "@/store/userStore";
 import { SingleStaffReport, MultipleStaffReport } from "./templates";
 
@@ -69,6 +64,10 @@ function AttendanceReports() {
   const [Stats, setStats] = useState<StatsType>({
     present: 0,
     absent: 0,
+    localLeave: 0,
+    sickLeave: 0,
+    offDuty: 0,
+    training: 0,
     late: 0,
     sites: 0,
     attendanceRate: 0,
@@ -149,6 +148,10 @@ function AttendanceReports() {
             sumLate: Number(item.sumLate ?? 0),
             sumHours: Number(item.sumHours ?? 0),
             avgHours: Number(item.avgHours ?? 0),
+            sumTraining: Number(item.sumTraining ?? 0),
+            sumOff: Number(item.sumOff ?? 0),
+            sumLocalLeave: Number(item.sumLocalLeave ?? 0),
+            sumSickLeave: Number(item.sumSickLeave ?? 0),
             sumTravelAllowance: Number(item.sumTravelAllowance ?? 0),
             attendanceRate: rate,
             status: (item as AttendanceStatsReport).status ?? "",
@@ -156,8 +159,8 @@ function AttendanceReports() {
             date: (item as AttendanceStatsReport).date ?? null,
             checkIn: (item as AttendanceStatsReport).checkIn ?? null,
             checkOut: (item as AttendanceStatsReport).checkOut ?? null,
-            approvedBy: 0,
-            siteId: 0,
+            approvedBy: (item as AttendanceStatsReport).approvedBy ?? null,
+            siteId: (item as AttendanceStatsReport).siteId ?? 0,
           };
         }
       );
@@ -194,7 +197,14 @@ function AttendanceReports() {
     }
 
     setTotalRecord(Attendances.data?.totalRecords ?? 0);
-  }, [Attendances.data]);
+  }, [
+    Attendances.data,
+    dateRange.from,
+    dateRange.to,
+    searchName,
+    selectedMonth,
+    selectedSite,
+  ]);
 
   const exportToExcel = async () => {
     try {
@@ -295,7 +305,8 @@ function AttendanceReports() {
           Stats.hours
         );
 
-        doc.save(`Attendance_Report.pdf`);
+        // doc.save(`Attendance_Report.pdf`);
+        return;
       } else {
         if (batchPrint) {
           const sorted = filtredAttendances.sort((a, b) =>
@@ -400,8 +411,18 @@ function AttendanceReports() {
           totalDays={totalDays}
         />
       ),
-    [searchName, selectedSite, filtredAttendances, Attendances.isLoading]
+    [
+      searchName,
+      selectedSite,
+      filtredAttendances,
+      Attendances.isLoading,
+      dateRange.from,
+      dateRange.to,
+      selectedMonth,
+      totalDays,
+    ]
   );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -534,7 +555,7 @@ function AttendanceReports() {
                   id="search"
                   placeholder="Name or ID..."
                   value={searchName}
-                  onChange={(e) => setSearchName(e.target.value)}
+                  onChange={(e) => setSearchName(e.target.value.trim())}
                   className="pl-8"
                 />
               </div>
@@ -582,7 +603,7 @@ function AttendanceReports() {
               <CardHeader className="pb-3">
                 <CardDescription>Attendance Rate</CardDescription>
                 <CardTitle className="text-3xl">
-                  {(Stats.attendanceRate * 10).toFixed(1)}%
+                  {Stats.attendanceRate.toFixed(1)}%
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -592,12 +613,29 @@ function AttendanceReports() {
                     <span className="text-green-600">{Stats.present}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Absent:</span>
-                    <span className="text-red-600">{Stats.absent}</span>
+                    <span className="text-muted-foreground">Training:</span>
+                    <span className="text-cyan-600">{Stats.training}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Late:</span>
                     <span className="text-orange-600">{Stats.late}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Absent:</span>
+                    <span className="text-red-600">{Stats.absent}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Local leave:</span>
+                    <span className="text-purple-600">{Stats.localLeave}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Sick Leave:</span>
+                    <span className="text-pink-600">{Stats.sickLeave}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Off Duty:</span>
+                    <span className="text-gray-600">{Stats.offDuty}</span>
                   </div>
                 </div>
               </CardContent>

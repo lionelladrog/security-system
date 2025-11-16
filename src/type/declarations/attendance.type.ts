@@ -7,7 +7,7 @@ export const newStaffAttendanceRecordZod = z.object({
   id: z.number().optional(),
   date: z.coerce.date().default(() => new Date()),
   staffId: z.number().min(1, "Please select a staff member"),
-  status: z.string().optional().nullable().default("absent"),
+  statusId: z.number().optional().nullable().default(3),
   checkIn: z.string().min(1, "Please select Check In time"),
   checkOut: z.string().min(1, "Please select Check Out time"),
   breakTime: z
@@ -19,6 +19,7 @@ export const newStaffAttendanceRecordZod = z.object({
   siteId: z.number().min(1, "Please select a site"),
   notes: z.string().nullable().optional(),
   hours: z.string().nullable().optional(),
+  otherHours: z.string().optional().default("0"),
   approvedBy: z.number(),
   approvedAt: z.coerce.date().default(() => new Date()),
   hasPendingRequest: z.boolean().nullable().optional().default(false),
@@ -32,6 +33,7 @@ export interface AttendanceTableRecord extends NewStaffAttendanceRecord {
   firstName: string;
   lastName: string;
   site: string;
+  status: string;
 }
 // export interface AttendanceStatsReport {
 //   staffId: number;
@@ -57,6 +59,10 @@ export interface AttendanceStatsReport extends AttendanceTableRecord {
   sumAbsent?: number;
   sumLate?: number;
   sumHours?: number;
+  sumTraining?: number;
+  sumOff?: number;
+  sumLocalLeave?: number;
+  sumSickLeave?: number;
   avgHours?: number;
 
   sumTravelAllowance?: number;
@@ -89,7 +95,7 @@ export type { NewStaffAttendanceRecord };
 export interface StaffAttendanceRecord {
   staffId: number;
   date: string;
-  status: "present" | "absent" | "late";
+  status: number;
   checkIn?: string;
   checkOut?: string;
   breakTime?: number;
@@ -114,5 +120,14 @@ export type StatAccumulator = {
   presentCount: number;
   lateCount: number;
   absentCount: number;
+  localLeaveCount: number;
+  sickLeaveCount: number;
+  offDutyCount: number;
+  trainingCount: number;
   total: number;
+};
+
+export type AttendanceStatus = {
+  id: number;
+  name: string;
 };

@@ -1,0 +1,1 @@
+ALTER TABLE `staff_attendance_record` ADD `other_hours` decimal(4,2) DEFAULT '0';

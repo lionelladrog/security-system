@@ -34,8 +34,13 @@ export const reportAll = async (
     report.sites ?? "",
     totalDays ?? 0,
     report.sumPresent ?? 0,
-    report.sumAbsent ?? 0,
     report.sumLate ?? 0,
+    report.sumTraining ?? 0,
+    report.sumOff ?? 0,
+    report.sumAbsent ?? 0,
+    report.sumLocalLeave ?? 0,
+    report.sumSickLeave ?? 0,
+
     `${(report.attendanceRate ?? 0).toFixed(2)}%`,
     report.sumHours != null ? report.sumHours.toFixed(1) : "0.0",
     `Rs ${
@@ -44,7 +49,7 @@ export const reportAll = async (
         : "0.00"
     }`,
   ]);
-
+  doc.setFontSize(7);
   autoTable(doc, {
     head: [
       [
@@ -53,8 +58,12 @@ export const reportAll = async (
         "Site",
         "Days",
         "Present",
-        "Absent",
         "Late",
+        "Training",
+        "Off Duty",
+        "Absent",
+        "Sick Leave",
+        "Local Leave",
         "Rate",
         "Hours",
         "Travel",
@@ -64,7 +73,7 @@ export const reportAll = async (
     startY: startTextY + init + 5,
     theme: "striped",
     headStyles: { fillColor: [0, 115, 154] },
-    styles: { fontSize: 8 },
+    styles: { fontSize: 7 },
     foot: [
       [
         "Total",
@@ -74,12 +83,16 @@ export const reportAll = async (
         "",
         "",
         "",
+        "",
+        "",
+        "",
+        "",
         `${(attendanceRate * 10).toFixed(2)}%`,
         hours.toFixed(2),
         `Rs${travelAllowance}`,
       ],
     ],
-    footStyles: { fillColor: [0, 115, 154], fontSize: 10 },
+    footStyles: { fillColor: [0, 115, 154], fontSize: 8 },
   });
   doc.save(`attendance_reports_${new Date().toISOString().split("T")[0]}.pdf`);
 
@@ -158,13 +171,32 @@ export const reportSingle = async (
   const head = [];
   const foot = [];
   const nb_present = filtredAttendances.filter(
-    (report) => report.status === "present"
+    (report) => report.statusId === 1
   ).length;
-  const nb_absent = filtredAttendances.filter(
-    (report) => report.status === "absnet"
+  // const nb_absent = filtredAttendances.filter(
+  //   (report) => report.statusId === 3
+  // ).length;
+  const nb_training = filtredAttendances.filter(
+    (report) => report.statusId === 10
   ).length;
-  const rate = ((nb_present - nb_absent) / filtredAttendances.length) * 100;
-  const nb_site = new Set(filtredAttendances.map((report) => report.site)).size;
+  // const nb_local_leave = filtredAttendances.filter(
+  //   (report) => report.statusId === 5
+  // ).length;
+  // const nb_sick_leave = filtredAttendances.filter(
+  //   (report) => report.statusId === 6
+  // ).length;
+  const nb_late = filtredAttendances.filter(
+    (report) => report.statusId === 2
+  ).length;
+  // const nb_off_duty = filtredAttendances.filter(
+  //   (report) => report.statusId === 9
+  // ).length;
+
+  const nb_site = new Set(
+    filtredAttendances
+      .filter((report) => report.siteId !== 0)
+      .map((report) => report.siteId)
+  ).size;
 
   const nb_of_working_days = new Set(
     filtredAttendances.map((report) => report.date)
@@ -179,6 +211,14 @@ export const reportSingle = async (
     0
   );
 
+  const total_other_hours = filtredAttendances.reduce(
+    (acc, report) => acc + Number(report.otherHours),
+    0
+  );
+
+  const rate =
+    ((nb_present + nb_training + nb_late) / filtredAttendances.length) * 100;
+
   if (employeeStats && Object.keys(employeeStats).length !== 0) {
     tableData = filtredAttendances.map((report) => [
       report.date ? format(new Date(report.date), "dd-MM-yyyy") : "",
@@ -186,6 +226,7 @@ export const reportSingle = async (
       report.checkIn.substring(0, 5) ?? 0,
       report.checkOut.substring(0, 5) ?? 0,
       report.breakTime ?? 0,
+      report.otherHours ?? 0,
       decimalToHourMin(Number(report.hours)! ?? 0),
       `Rs${
         report.travelAllowance != null
@@ -201,6 +242,7 @@ export const reportSingle = async (
       "Start",
       "End",
       "Break (min)",
+      "Other Hours (min)",
       "Hours",
       "Travelling",
       "Status",
@@ -211,6 +253,7 @@ export const reportSingle = async (
       "",
       "",
       `${employeeStats.break} min`,
+      `${employeeStats.otherHours} min`,
       `${decimalToHourMin(employeeStats.hours)}`,
       `Rs${employeeStats.TravelAllowance}`,
       rate.toFixed(2) + "% Present",
@@ -227,6 +270,7 @@ export const reportSingle = async (
         report.checkIn.substring(0, 5) ?? 0,
         report.checkOut.substring(0, 5) ?? 0,
         report.breakTime ?? 0,
+        report.otherHours ?? 0,
         decimalToHourMin(Number(report.hours)! ?? 0),
         `Rs${
           report.travelAllowance != null
@@ -244,6 +288,7 @@ export const reportSingle = async (
       "start",
       "End",
       "Break (min)",
+      "Other Hours (min)",
       "Hours",
       "Travelling",
       "Status",
@@ -267,6 +312,7 @@ export const reportSingle = async (
       "",
       "",
       total_break + " min",
+      total_other_hours + " min",
       `${decimalToHourMin(total.hours)}`,
       `Rs${total.travelling.toFixed(2)}`,
       rate.toFixed(2) + "% Present",
@@ -342,6 +388,7 @@ function getEmployeeStats(arr: AttendanceStatsReport[]) {
     employeeId: "",
     name: "",
     break: 0,
+    otherHours: 0,
     hours: 0,
     TravelAllowance: 0,
   };
@@ -359,6 +406,7 @@ function getEmployeeStats(arr: AttendanceStatsReport[]) {
     employeeStats.name = firstName;
     return arr.reduce((acc, item) => {
       acc.break += Number(item.breakTime) ?? 0;
+      acc.otherHours += Number(item.otherHours) ?? 0;
       acc.hours += Number(item.hours) ?? 0;
       acc.TravelAllowance += Number(item.travelAllowance);
       return acc;

@@ -26,6 +26,10 @@ export const getAttendanceStats = (
   const stats = {
     present: 0,
     absent: 0,
+    localLeave: 0,
+    sickLeave: 0,
+    offDuty: 0,
+    training: 0,
     late: 0,
     sites: 0,
     hours: 0,
@@ -55,14 +59,32 @@ export const getAttendanceStats = (
     if (forAll) {
       if (!staffs.includes(attendances[i].staffId)) {
         staffs.push(attendances[i].staffId);
-        if (
-          "sumPresent" in attendances[i] &&
-          "sumAbsent" in attendances[i] &&
-          "sumLate" in attendances[i]
-        ) {
+        if ("sumPresent" in attendances[i]) {
           stats.present += Number(attendances[i].sumPresent);
+        }
+
+        if ("sumAbsent" in attendances[i]) {
           stats.absent += Number(attendances[i].sumAbsent);
+        }
+
+        if ("sumLate" in attendances[i]) {
           stats.late += Number(attendances[i].sumLate);
+        }
+
+        if ("sumTraining" in attendances[i]) {
+          stats.training += Number(attendances[i].sumTraining);
+        }
+
+        if ("sumOff" in attendances[i]) {
+          stats.offDuty += Number(attendances[i].sumOff);
+        }
+
+        if ("sumLocalLeave" in attendances[i]) {
+          stats.localLeave += Number(attendances[i].sumLocalLeave);
+        }
+
+        if ("sumSickLeave" in attendances[i]) {
+          stats.sickLeave += Number(attendances[i].sumSickLeave);
         }
 
         if ("sumTravelAllowance" in attendances[i]) {
@@ -71,15 +93,27 @@ export const getAttendanceStats = (
       }
     } else {
       if ("status" in attendances[i]) {
-        switch (attendances[i].status?.toLocaleLowerCase()) {
-          case "present":
+        switch (attendances[i].statusId) {
+          case 1:
             stats.present++;
             break;
-          case "absent":
+          case 3:
             stats.absent++;
             break;
-          case "late":
+          case 2:
             stats.late++;
+            break;
+          case 10:
+            stats.training++;
+            break;
+          case 9:
+            stats.offDuty++;
+            break;
+          case 5:
+            stats.localLeave++;
+            break;
+          case 6:
+            stats.sickLeave++;
             break;
           default:
             break;
@@ -127,11 +161,25 @@ export const getAttendanceStats = (
 
   if (nb_of_day > 0) {
     stats.attendanceRate = !forAll
-      ? Number(stats.present) + Number(stats.absent) / nb_of_day
-      : Number(stats.present) + Number(stats.absent) / nbOfday;
+      ? ((Number(stats.present) + Number(stats.training) + Number(stats.late)) /
+          nb_of_day) *
+        100
+      : ((Number(stats.present) + Number(stats.training) + Number(stats.late)) /
+          nbOfday) *
+        100;
   }
+  console.log("stats", stats);
+  console.log("nbOfday:", nb_of_day);
 
-  stats.notMarked = staffs.length - stats.present - stats.absent - stats.late;
+  stats.notMarked =
+    staffs.length -
+    stats.present -
+    stats.absent -
+    stats.late -
+    stats.training -
+    stats.offDuty -
+    stats.localLeave -
+    stats.sickLeave;
   stats.totalRecord = nb_of_day;
   return stats;
 };

@@ -4,7 +4,7 @@ import { AttendanceChart } from "../../components/AttendanceChart";
 
 import { AttendanceTableRecord } from "@/type";
 import { trpc } from "@/lib/trpc";
-
+import { getMonthName } from "@/lib/utils";
 const Dashboard = () => {
   const [filtredAttendances, setAttendanceStats] = useState<
     AttendanceTableRecord[]
@@ -32,10 +32,25 @@ const Dashboard = () => {
       setAttendanceStats(parsed);
     }
   }, [Attendances.data]);
+  const now = new Date();
+  const currentMonthIndex = now.getMonth() + 1;
+  const currentYear = new Date().getFullYear();
 
   return (
     <div>
-      <AttendanceChart staffRecords={filtredAttendances} />
+      <div className="mb-4">
+        <h2>
+          Attendance analytics of {getMonthName(currentMonthIndex)}{" "}
+          {currentYear}
+        </h2>
+        <p className="text-muted-foreground">
+          View detailed attendance analytics
+        </p>
+      </div>
+      <AttendanceChart
+        staffRecords={filtredAttendances}
+        isLoading={Attendances.isLoading}
+      />
     </div>
   );
 };

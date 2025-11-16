@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 export const getStatusBadge = (status: string) => {
-  switch (status) {
+  switch (status.toLocaleLowerCase()) {
     case "present":
       return (
         <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
@@ -21,22 +21,28 @@ export const getStatusBadge = (status: string) => {
           Half Day
         </Badge>
       );
-    case "leave":
+    case "local leave":
       return (
         <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">
-          WFH
+          Local Leave
         </Badge>
       );
-    case "sick":
+    case "sick leave":
       return (
         <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-100">
-          Sick
+          Sick Leave
         </Badge>
       );
-    case "off":
+    case "off duty":
       return (
         <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
-          Off
+          Off Duty
+        </Badge>
+      );
+    case "training":
+      return (
+        <Badge className="bg-cyan-100 text-cyan-800 hover:bg-gray-100">
+          Training
         </Badge>
       );
     default:
