@@ -36,6 +36,7 @@ import { StatsSkeleton } from "@/components/Skeleton";
 import { reportAll, reportSingle } from "./utils/pdf-report";
 import { getAttendanceStats, loadImageAsBase64 } from "@/lib/utils";
 import userStore from "@/store/userStore";
+
 import { SingleStaffReport, MultipleStaffReport } from "./templates";
 
 function AttendanceReports() {
@@ -281,23 +282,28 @@ function AttendanceReports() {
         selectedMonth !== "all" ||
         dateRange.from != undefined ||
         dateRange.to != undefined;
-
+      const date = new Date();
+      const formattedDate = format(date, "dd-MMM-yyyy").toLowerCase();
+      const startTextY = 10 + 10 + 5;
+      const coef = 6;
+      const init = 10;
       if (!isFiltered) {
         const doc = new jsPDF();
+
         doc.addImage(base64Image, "PNG", 10, 10, 50, 15);
-        const startTextY = 10 + 20 + 5;
+
         doc.setFontSize(10);
-        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 200, 15, {
+        doc.text(`${formattedDate}`, 200, 15, {
           align: "right",
         });
-        doc.setFontSize(18);
-        doc.text("Staff Attendance Reports", 65, startTextY);
+        doc.setFontSize(16);
+        doc.text("ATTENDANCE SHEET", 75, startTextY);
 
         await reportAll(
           doc,
           startTextY,
-          6,
-          15,
+          coef,
+          init,
           filtredAttendances,
           totalDays,
           Stats.attendanceRate,
@@ -330,13 +336,13 @@ function AttendanceReports() {
           for (const group of grouped) {
             const doc = new jsPDF();
             doc.addImage(base64Image, "PNG", 10, 10, 50, 15);
-            const startTextY = 10 + 20 + 5;
+
             doc.setFontSize(10);
-            doc.text(`Generated: ${new Date().toLocaleDateString()}`, 200, 15, {
+            doc.text(`${formattedDate}`, 200, 15, {
               align: "right",
             });
-            doc.setFontSize(18);
-            doc.text("Staff Attendance Report", 65, startTextY);
+            doc.setFontSize(16);
+            doc.text("ATTENDANCE SHEET", 75, startTextY);
 
             const name = `${group[0].employeeId}_${group[0].firstName}_${
               group[0].lastName
@@ -344,8 +350,8 @@ function AttendanceReports() {
             await reportSingle(
               doc,
               startTextY,
-              6,
-              15,
+              coef,
+              init,
               group,
               name,
               dateRange.from,
@@ -359,19 +365,19 @@ function AttendanceReports() {
         } else {
           const doc = new jsPDF();
           doc.addImage(base64Image, "PNG", 10, 10, 50, 15);
-          const startTextY = 10 + 20 + 5;
+
           doc.setFontSize(10);
-          doc.text(`Generated: ${new Date().toLocaleDateString()}`, 200, 15, {
+          doc.text(`${formattedDate}`, 200, 15, {
             align: "right",
           });
-          doc.setFontSize(18);
-          doc.text("Staff Attendance Reports", 65, startTextY);
+          doc.setFontSize(16);
+          doc.text("ATTENDANCE SHEET", 75, startTextY);
 
           await reportSingle(
             doc,
             startTextY,
-            6,
-            15,
+            coef,
+            init,
             filtredAttendances,
             searchName,
             dateRange.from,

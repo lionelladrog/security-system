@@ -206,10 +206,10 @@ export const reportSingle = async (
     filtredAttendances.map((report) => report.employeeId)
   ).size;
 
-  const total_break = filtredAttendances.reduce(
-    (acc, report) => acc + Number(report.breakTime),
-    0
-  );
+  // const total_break = filtredAttendances.reduce(
+  //   (acc, report) => acc + Number(report.breakTime),
+  //   0
+  // );
 
   const total_other_hours = filtredAttendances.reduce(
     (acc, report) => acc + Number(report.otherHours),
@@ -225,7 +225,7 @@ export const reportSingle = async (
       report.site ?? "",
       report.checkIn.substring(0, 5) ?? 0,
       report.checkOut.substring(0, 5) ?? 0,
-      report.breakTime ?? 0,
+      // report.breakTime ?? 0,
       report.otherHours ?? 0,
       decimalToHourMin(Number(report.hours)! ?? 0),
       `Rs${
@@ -241,7 +241,7 @@ export const reportSingle = async (
       "Site",
       "Start",
       "End",
-      "Break (min)",
+      // "Break (min)",
       "Other Hours (min)",
       "Hours",
       "Travelling",
@@ -252,7 +252,7 @@ export const reportSingle = async (
       nb_site + " Site(s)",
       "",
       "",
-      `${employeeStats.break} min`,
+      // `${employeeStats.break} min`,
       `${employeeStats.otherHours} min`,
       `${decimalToHourMin(employeeStats.hours)}`,
       `Rs${employeeStats.TravelAllowance}`,
@@ -269,7 +269,7 @@ export const reportSingle = async (
         report.site ?? "",
         report.checkIn.substring(0, 5) ?? 0,
         report.checkOut.substring(0, 5) ?? 0,
-        report.breakTime ?? 0,
+        // report.breakTime ?? 0,
         report.otherHours ?? 0,
         decimalToHourMin(Number(report.hours)! ?? 0),
         `Rs${
@@ -285,9 +285,8 @@ export const reportSingle = async (
       "Employee ID",
       "Name",
       "Site",
-      "start",
+      "Start",
       "End",
-      "Break (min)",
       "Other Hours (min)",
       "Hours",
       "Travelling",
@@ -311,7 +310,7 @@ export const reportSingle = async (
       nb_site + " Site(s)",
       "",
       "",
-      total_break + " min",
+      // total_break + " min",
       total_other_hours + " min",
       `${decimalToHourMin(total.hours)}`,
       `Rs${total.travelling.toFixed(2)}`,
@@ -363,11 +362,9 @@ export const reportSingle = async (
   doc.setFont("helvetica", "normal");
   doc.text("Office Use:", 14, finalY + 60);
   doc.setFontSize(8);
-  doc.text("Date Started: ___________________", 14, finalY + 67);
-  doc.text(`Approved By: _______________________`, 150, finalY + 67, {
-    align: "right",
-  });
-  doc.text("Date Started: ___________________", 14, finalY + 73);
+  // doc.text("Date Started: ___________________", 14, finalY + 67);
+  doc.text(`Approved By: _______________________`, 14, finalY + 67);
+  // doc.text("Date Started: ___________________", 14, finalY + 73);
 
   const pageHeight = doc.internal.pageSize.getHeight();
 
