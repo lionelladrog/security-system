@@ -72,7 +72,7 @@ export const reportAll = async (
     body: tableData,
     startY: startTextY + init + 5,
     theme: "striped",
-    headStyles: { fillColor: [0, 115, 154] },
+    headStyles: { fillColor: [227, 246, 250], textColor: [69, 68, 69] },
     styles: { fontSize: 7 },
     foot: [
       [
@@ -92,7 +92,11 @@ export const reportAll = async (
         `Rs${travelAllowance}`,
       ],
     ],
-    footStyles: { fillColor: [0, 115, 154], fontSize: 8 },
+    footStyles: {
+      fillColor: [227, 246, 250],
+      fontSize: 8,
+      textColor: [69, 68, 69],
+    },
   });
   doc.save(`attendance_reports_${new Date().toISOString().split("T")[0]}.pdf`);
 
@@ -323,10 +327,14 @@ export const reportSingle = async (
     body: tableData,
     startY: startTextY + init + 3,
     theme: "striped",
-    headStyles: { fillColor: [0, 115, 154] },
+    headStyles: { fillColor: [227, 246, 250], textColor: [69, 68, 69] },
     styles: { fontSize: 8 },
     foot: foot,
-    footStyles: { fillColor: [0, 115, 154], fontSize: 8 },
+    footStyles: {
+      fillColor: [227, 246, 250],
+      fontSize: 8,
+      textColor: [69, 68, 69],
+    },
   });
   const finalY = doc.lastAutoTable?.finalY || startTextY + init + 10;
 
