@@ -224,9 +224,9 @@ export default function StaffAttendanceForm({
     data.hours = hours.toString();
 
     data.date = data.date instanceof Date ? data.date : new Date(data.date);
-    console.log("data:", data);
+    // console.log("data:", data);
 
-    return;
+    // return;
 
     if (!("id" in data)) {
       attendanceCreateMutation.mutate(data, {
