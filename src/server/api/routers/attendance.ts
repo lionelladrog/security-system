@@ -335,14 +335,9 @@ export const attendanceRouter = router({
     .input(newStaffAttendanceRecordZod)
     .mutation(async ({ input, ctx }) => {
       try {
-        const normalizedDateUTC = new Date(
-          input.date.getUTCFullYear(),
-          input.date.getUTCMonth(),
-          input.date.getUTCDate()
-        );
         const result = await ctx.db
           .insert(staffAttendanceRecords)
-          .values({ ...input, date: normalizedDateUTC });
+          .values(input);
         return { success: true, data: result };
       } catch (error) {
         errorHandler(error);

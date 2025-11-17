@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -57,13 +57,21 @@ export default function StaffAttendanceForm({
   const [hours, setHours] = useState<string>("0");
   const [lockEdit, setLockEdit] = useState(false);
   const [lockonWorking, setLockOnWorking] = useState(false);
+  const [normalizedDate, setNormalizedDate] = useState<Date | undefined>();
   const workingStatus = [1, 2, 4, 7];
   const isSunday = selectedDate.getDay() === 0;
-  const normalizedDate = new Date(
-    selectedDate.getFullYear(),
-    selectedDate.getMonth(),
-    selectedDate.getDate()
-  );
+
+  useEffect(() => {
+    if (selectedDate) {
+      setNormalizedDate(
+        new Date(
+          selectedDate.getFullYear(),
+          selectedDate.getMonth(),
+          selectedDate.getDate()
+        )
+      );
+    }
+  }, [selectedDate]);
 
   const form = useForm({
     resolver: zodResolver(newStaffAttendanceRecordZod),
@@ -104,6 +112,12 @@ export default function StaffAttendanceForm({
       setSites(SitesData.data);
     }
   }, [SitesData.data]);
+
+  useEffect(() => {
+    if (normalizedDate) {
+      setHours(attendanceRecord?.hours?.toString() || "0");
+    }
+  }, [attendanceRecord, normalizedDate]);
 
   useEffect(() => {
     if (attendanceRecord && staffs.length > 0 && sites.length > 0) {
@@ -165,40 +179,43 @@ export default function StaffAttendanceForm({
     }
   }, [attendanceRecord, staffs, sites, user, form, normalizedDate]);
 
-  const calculateHoursWorked = (
-    watchCheckIn: string,
-    watchCheckOut: string,
-    watchBreakTime: number | undefined,
-    watchOtherHours: string | undefined
-  ) => {
-    if (!watchCheckIn || !watchCheckOut) return "0.00";
+  const calculateHoursWorked = useCallback(
+    (
+      watchCheckIn: string,
+      watchCheckOut: string,
+      watchBreakTime: number | undefined,
+      watchOtherHours: string | undefined
+    ) => {
+      if (!watchCheckIn || !watchCheckOut) return "0.00";
 
-    const [inHour, inMinute] = watchCheckIn.split(":").map(Number);
-    const [outHour, outMinute] = watchCheckOut.split(":").map(Number);
+      const [inHour, inMinute] = watchCheckIn.split(":").map(Number);
+      const [outHour, outMinute] = watchCheckOut.split(":").map(Number);
 
-    const inTotalMinutes = inHour * 60 + inMinute;
-    let outTotalMinutes = outHour * 60 + outMinute;
+      const inTotalMinutes = inHour * 60 + inMinute;
+      let outTotalMinutes = outHour * 60 + outMinute;
 
-    if (outTotalMinutes < inTotalMinutes) {
-      outTotalMinutes += 24 * 60;
-    }
+      if (outTotalMinutes < inTotalMinutes) {
+        outTotalMinutes += 24 * 60;
+      }
 
-    let workedMinutes = watchBreakTime
-      ? outTotalMinutes - inTotalMinutes - watchBreakTime
-      : outTotalMinutes - inTotalMinutes;
+      let workedMinutes = watchBreakTime
+        ? outTotalMinutes - inTotalMinutes - watchBreakTime
+        : outTotalMinutes - inTotalMinutes;
 
-    if (watchOtherHours) {
-      workedMinutes += Number(watchOtherHours);
-    }
+      if (watchOtherHours) {
+        workedMinutes += Number(watchOtherHours);
+      }
 
-    const hours = Math.max(workedMinutes / 60, 0);
+      const hours = Math.max(workedMinutes / 60, 0);
 
-    if (hours > 5) {
-      form.setValue("statusId", 1);
-    }
+      if (hours > 5) {
+        form.setValue("statusId", 1);
+      }
 
-    return hours.toFixed(2);
-  };
+      return hours.toFixed(2);
+    },
+    [watchBreakTime, watchCheckIn, watchCheckOut, watchOtherHours]
+  );
 
   useEffect(() => {
     if (watchCheckIn && watchCheckOut) {
@@ -210,13 +227,7 @@ export default function StaffAttendanceForm({
       );
       setHours(hours.toString());
     }
-  }, [
-    watchCheckIn,
-    watchCheckOut,
-    watchBreakTime,
-    watchOtherHours,
-    calculateHoursWorked,
-  ]);
+  }, [watchCheckIn, watchCheckOut, watchBreakTime, watchOtherHours]);
 
   const handleFormSubmit = (data: NewStaffAttendanceRecordForm) => {
     const hours = calculateHoursWorked(
@@ -227,7 +238,13 @@ export default function StaffAttendanceForm({
     );
 
     data.hours = hours.toString();
-
+    data.date = new Date(
+      Date.UTC(
+        data.date.getFullYear(),
+        data.date.getMonth(),
+        data.date.getDate()
+      )
+    );
     // data.date = data.date instanceof Date ? data.date : new Date(data.date);
     // console.log("data:", data.date);
 
