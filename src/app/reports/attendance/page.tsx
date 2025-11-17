@@ -127,7 +127,6 @@ function AttendanceReports() {
       setBatchIsvisible(false);
     }
   }, [searchName, selectedMonth, dateRange, selectedSite]);
-  console.log(Attendances.data?.results);
 
   useEffect(() => {
     if (Attendances.data?.totalDays) {
