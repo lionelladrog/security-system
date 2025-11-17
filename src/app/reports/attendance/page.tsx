@@ -105,14 +105,13 @@ function AttendanceReports() {
       newParams.date_to = format(dateRange.to, "yyyy-MM-dd");
     }
 
-    setQueryParams(newParams);
-  }, [searchName, selectedMonth, dateRange, selectedSite]);
-
-  useEffect(() => {
-    if (queryParams) {
-      Attendances.refetch();
+    const hasFilters = Object.keys(newParams).length > 0;
+    if (hasFilters) {
+      setQueryParams(newParams);
+    } else {
+      setQueryParams({});
     }
-  }, [queryParams, Attendances]);
+  }, [searchName, selectedMonth, dateRange, selectedSite]);
 
   useEffect(() => {
     const isFiltered =
@@ -128,6 +127,7 @@ function AttendanceReports() {
       setBatchIsvisible(false);
     }
   }, [searchName, selectedMonth, dateRange, selectedSite]);
+  console.log(Attendances.data?.results);
 
   useEffect(() => {
     if (Attendances.data?.totalDays) {

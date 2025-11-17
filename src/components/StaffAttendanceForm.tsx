@@ -58,7 +58,7 @@ export default function StaffAttendanceForm({
   const [lockEdit, setLockEdit] = useState(false);
   const [lockonWorking, setLockOnWorking] = useState(false);
   const [normalizedDate, setNormalizedDate] = useState<Date | undefined>();
-  const workingStatus = [1, 2, 4, 7];
+  const workingStatus = [1, 2, 4, 7, 11];
   const isSunday = selectedDate.getDay() === 0;
 
   useEffect(() => {

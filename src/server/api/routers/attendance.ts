@@ -190,9 +190,10 @@ export const attendanceRouter = router({
           !("date" in input)
         ) {
           const month = parseInt(input.month);
+
           conditions.push(
-            sql`EXTRACT(YEAR FROM ${staffAttendanceRecords.updatedAt}) = ${year}`,
-            sql`EXTRACT(MONTH FROM ${staffAttendanceRecords.updatedAt}) = ${month}`
+            sql`EXTRACT(YEAR FROM ${staffAttendanceRecords.date}) = ${year}`,
+            sql`EXTRACT(MONTH FROM ${staffAttendanceRecords.date}) = ${month}`
           );
         }
 
@@ -318,7 +319,10 @@ export const attendanceRouter = router({
             staffMember.employeeId
           );
         }
+
+        // console.log("input", input);
         const results = await query;
+        // console.log(results);
 
         return {
           totalRecords,
