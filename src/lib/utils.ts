@@ -168,8 +168,6 @@ export const getAttendanceStats = (
           nbOfday) *
         100;
   }
-  console.log("stats", stats);
-  console.log("nbOfday:", nb_of_day);
 
   stats.notMarked =
     staffs.length -

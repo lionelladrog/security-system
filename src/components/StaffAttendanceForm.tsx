@@ -224,8 +224,8 @@ export default function StaffAttendanceForm({
     data.hours = hours.toString();
 
     data.date = data.date instanceof Date ? data.date : new Date(data.date);
+    // console.log("data:", data);
 
-    // console.log(data);
     // return;
 
     if (!("id" in data)) {
