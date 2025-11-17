@@ -59,11 +59,16 @@ export default function StaffAttendanceForm({
   const [lockonWorking, setLockOnWorking] = useState(false);
   const workingStatus = [1, 2, 4, 7];
   const isSunday = selectedDate.getDay() === 0;
+  const normalizedDate = new Date(
+    selectedDate.getFullYear(),
+    selectedDate.getMonth(),
+    selectedDate.getDate()
+  );
 
   const form = useForm({
     resolver: zodResolver(newStaffAttendanceRecordZod),
     defaultValues: {
-      date: selectedDate,
+      date: normalizedDate,
       siteId: attendanceRecord?.siteId || 0,
       staffId: attendanceRecord?.staffId || 0,
       checkIn: "",
@@ -112,7 +117,7 @@ export default function StaffAttendanceForm({
         id: attendanceRecord.id || 0,
         date: attendanceRecord.date
           ? new Date(attendanceRecord.date)
-          : selectedDate,
+          : normalizedDate,
         staffId:
           typeof attendanceRecord?.staffId === "number"
             ? attendanceRecord.staffId
@@ -140,7 +145,7 @@ export default function StaffAttendanceForm({
       });
     } else {
       form.reset({
-        date: selectedDate,
+        date: normalizedDate,
         siteId: attendanceRecord?.siteId || 0,
         staffId: attendanceRecord?.staffId || 0,
         checkIn: attendanceRecord?.checkIn || "",
@@ -158,7 +163,7 @@ export default function StaffAttendanceForm({
         hasPendingRequest: false,
       });
     }
-  }, [attendanceRecord, staffs, sites, user, form, selectedDate]);
+  }, [attendanceRecord, staffs, sites, user, form, normalizedDate]);
 
   const calculateHoursWorked = (
     watchCheckIn: string,
@@ -223,8 +228,8 @@ export default function StaffAttendanceForm({
 
     data.hours = hours.toString();
 
-    data.date = data.date instanceof Date ? data.date : new Date(data.date);
-    // console.log("data:", data);
+    // data.date = data.date instanceof Date ? data.date : new Date(data.date);
+    // console.log("data:", data.date);
 
     // return;
 

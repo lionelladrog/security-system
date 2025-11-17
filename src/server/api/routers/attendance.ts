@@ -335,9 +335,14 @@ export const attendanceRouter = router({
     .input(newStaffAttendanceRecordZod)
     .mutation(async ({ input, ctx }) => {
       try {
+        const normalizedDateUTC = new Date(
+          input.date.getUTCFullYear(),
+          input.date.getUTCMonth(),
+          input.date.getUTCDate()
+        );
         const result = await ctx.db
           .insert(staffAttendanceRecords)
-          .values(input);
+          .values({ ...input, date: normalizedDateUTC });
         return { success: true, data: result };
       } catch (error) {
         errorHandler(error);
@@ -348,6 +353,11 @@ export const attendanceRouter = router({
     .input(newStaffAttendanceRecordZod)
     .mutation(async ({ input, ctx }) => {
       try {
+        const normalizedDateUTC = new Date(
+          input.date.getUTCFullYear(),
+          input.date.getUTCMonth(),
+          input.date.getUTCDate()
+        );
         if (!input.id) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -359,7 +369,7 @@ export const attendanceRouter = router({
           .update(staffAttendanceRecords)
           .set({
             staffId: input.staffId,
-            date: input.date,
+            date: normalizedDateUTC,
             statusId: input.statusId,
             checkIn: input.checkIn,
             checkOut: input.checkOut,
