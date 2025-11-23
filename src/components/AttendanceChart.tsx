@@ -235,7 +235,7 @@ export function AttendanceChart({
     })();
 
     // Get last 20 days and calculate percentages
-    const dates = Object.keys(recordsByDate).sort();
+    const dates = Object.keys(recordsByDate);
     // const last14Dates = dates.slice(-20);
 
     return dates.map((dateStr) => {

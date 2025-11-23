@@ -29,6 +29,8 @@ export const getAttendanceStats = (
     localLeave: 0,
     sickLeave: 0,
     offDuty: 0,
+    extraDuty: 0,
+    travelling: 0,
     training: 0,
     late: 0,
     sites: 0,
@@ -36,11 +38,16 @@ export const getAttendanceStats = (
     attendanceRate: 0,
     travelAllowance: 0,
     notMarked: 0,
+    nbWeeks: 0,
+    nbSunday: 0,
+    nbWeekTotalHours: 0,
+    nbSundayTotalHours: 0,
     totalRecord: 0,
   };
   const staffs: number[] = [];
   const sites: number[] = [];
   const sitesName: string[] = [];
+  const dates: Date[] = [];
 
   const nb_of_day = attendances
     .reduce((acc: string[], item) => {
@@ -93,21 +100,46 @@ export const getAttendanceStats = (
       }
     } else {
       if ("status" in attendances[i]) {
+        const date = new Date(attendances[i].date);
+        const isSunday = date.getDay() === 0;
+
+        const updateStatsForDate = () => {
+          if (!dates.includes(attendances[i].date)) {
+            dates.push(attendances[i].date);
+            if (isSunday) {
+              stats.nbSunday++;
+            } else {
+              stats.nbWeeks++;
+            }
+          }
+          if (isSunday) {
+            stats.nbSundayTotalHours += Number(attendances[i].hours!);
+          } else {
+            stats.nbWeekTotalHours += Number(attendances[i].hours!);
+          }
+        };
+
         switch (attendances[i].statusId) {
           case 1:
+            updateStatsForDate();
             stats.present++;
             break;
           case 3:
             stats.absent++;
             break;
           case 2:
+            updateStatsForDate();
             stats.late++;
             break;
           case 10:
+            updateStatsForDate();
             stats.training++;
             break;
           case 9:
             stats.offDuty++;
+            break;
+          case 11:
+            stats.extraDuty++;
             break;
           case 5:
             stats.localLeave++;
@@ -119,6 +151,7 @@ export const getAttendanceStats = (
             break;
         }
       }
+
       if ("travelAllowance" in attendances[i]) {
         stats.travelAllowance += Number(attendances[i].travelAllowance);
       }
@@ -139,12 +172,6 @@ export const getAttendanceStats = (
       !sites.includes(attendances[i].siteId!)
     ) {
       sites.push(attendances[i].siteId!);
-      stats.sites++;
-    } else if (
-      "site" in attendances[i] &&
-      !sitesName.includes(attendances[i].site)
-    ) {
-      sitesName.push(attendances[i].site);
       stats.sites++;
     }
     if ("sumHours" in attendances[i]) {
@@ -179,6 +206,7 @@ export const getAttendanceStats = (
     stats.localLeave -
     stats.sickLeave;
   stats.totalRecord = nb_of_day;
+
   return stats;
 };
 
@@ -242,4 +270,13 @@ export function daysElapsed(date: Date): number {
 export function capitalizeFirstLetter(string: string) {
   if (!string) return "";
   return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+export function decimalToDayHourMin(decimalHours: number) {
+  // const totalMinutes = Math.round(decimalHours * 60);
+  const days = Math.floor(decimalHours / 8);
+  const remainingHours = Math.floor(decimalHours % 8);
+  const minutes = Math.round((decimalHours % 1) * 60) % 60;
+
+  return `${days} days ${remainingHours}h ${minutes}min`;
 }

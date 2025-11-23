@@ -97,9 +97,10 @@ export const attendanceRouter = router({
           !("date" in input)
         ) {
           const month = parseInt(input.month);
+
           conditions.push(
-            sql`EXTRACT(YEAR FROM ${staffAttendanceRecords.updatedAt}) = ${year}`,
-            sql`EXTRACT(MONTH FROM ${staffAttendanceRecords.updatedAt}) = ${month}`
+            sql`EXTRACT(YEAR FROM ${staffAttendanceRecords.date}) = ${year}`,
+            sql`EXTRACT(MONTH FROM ${staffAttendanceRecords.date}) = ${month}`
           );
         }
 
@@ -134,7 +135,7 @@ export const attendanceRouter = router({
             attendanceStatus,
             and(eq(attendanceStatus.id, staffAttendanceRecords.statusId))
           )
-          .orderBy(staffAttendanceRecords.id)
+          .orderBy(desc(staffAttendanceRecords.date), staffAttendanceRecords.id)
           .where(and(...conditions));
 
         return res;

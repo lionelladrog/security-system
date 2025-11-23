@@ -23,7 +23,10 @@ export const SiteBadge: React.FC<SiteBadgeProps> = ({ site }) => {
   const colorClass = siteColors[site] || "bg-gray-100 text-gray-800";
 
   return (
-    <Badge variant="outline" className={`${colorClass} border-transparent`}>
+    <Badge
+      variant="outline"
+      className={`${colorClass} border-transparent my-[2px] mx-[2px]`}
+    >
       {site}
     </Badge>
   );

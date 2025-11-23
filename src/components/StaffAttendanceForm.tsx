@@ -9,12 +9,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 import * as Switch from "@radix-ui/react-switch";
 import { Textarea } from "./ui/textarea";
 import { toast } from "sonner";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { daysElapsed } from "../lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   NewStaffAttendanceRecord,
   newStaffAttendanceRecordZod,
@@ -58,6 +66,7 @@ export default function StaffAttendanceForm({
   const [lockEdit, setLockEdit] = useState(false);
   const [lockonWorking, setLockOnWorking] = useState(false);
   const [normalizedDate, setNormalizedDate] = useState<Date | undefined>();
+
   const workingStatus = [1, 2, 4, 7, 11];
   const isSunday = selectedDate.getDay() === 0;
 
@@ -159,7 +168,9 @@ export default function StaffAttendanceForm({
       });
     } else {
       form.reset({
-        date: normalizedDate,
+        date: attendanceRecord?.date
+          ? new Date(attendanceRecord.date)
+          : normalizedDate,
         siteId: attendanceRecord?.siteId || 0,
         staffId: attendanceRecord?.staffId || 0,
         checkIn: attendanceRecord?.checkIn || "",
@@ -306,6 +317,41 @@ export default function StaffAttendanceForm({
             />
           </div>
         )}
+        <div className="flex">
+          <div className="ml-auto">
+            <Controller
+              name="date"
+              control={control}
+              render={({ field }) => {
+                const valueAsDate =
+                  field.value instanceof Date && !isNaN(field.value?.getTime())
+                    ? field.value
+                    : undefined;
+
+                return (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {valueAsDate
+                          ? format(valueAsDate, "PPP")
+                          : "Select a date"}
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="single"
+                        selected={valueAsDate}
+                        onSelect={(date) => field.onChange(date)}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                );
+              }}
+            />
+          </div>
+        </div>
 
         {/* Staff Select */}
         <div className="space-y-2">

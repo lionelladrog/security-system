@@ -224,21 +224,23 @@ export const reportSingle = async (
     ((nb_present + nb_training + nb_late) / filtredAttendances.length) * 100;
 
   if (employeeStats && Object.keys(employeeStats).length !== 0) {
-    tableData = filtredAttendances.map((report) => [
-      report.date ? format(new Date(report.date), "dd-MM-yyyy") : "",
-      report.site ?? "",
-      report.checkIn.substring(0, 5) ?? 0,
-      report.checkOut.substring(0, 5) ?? 0,
-      // report.breakTime ?? 0,
-      report.otherHours ?? 0,
-      decimalToHourMin(Number(report.hours)! ?? 0),
-      `Rs${
-        report.travelAllowance != null
-          ? Number(report.travelAllowance).toFixed(2)
-          : "0.00"
-      }`,
-      capitalizeFirstLetter(report.status!) ?? "",
-    ]);
+    tableData = filtredAttendances
+      .map((report) => [
+        report.date ? format(new Date(report.date), "eee, dd-MM-yyyy") : "",
+        report.site ?? "",
+        report.checkIn.substring(0, 5) ?? 0,
+        report.checkOut.substring(0, 5) ?? 0,
+        // report.breakTime ?? 0,
+        report.otherHours ?? 0,
+        decimalToHourMin(Number(report.hours)! ?? 0),
+        `Rs${
+          report.travelAllowance != null
+            ? Number(report.travelAllowance).toFixed(2)
+            : "0.00"
+        }`,
+        capitalizeFirstLetter(report.status!) ?? "",
+      ])
+      .reverse();
 
     head.push([
       "Date",
@@ -263,27 +265,29 @@ export const reportSingle = async (
       rate.toFixed(2) + "% Present",
     ]);
   } else {
-    tableData = filtredAttendances.map((report) => {
-      return [
-        report.date ? format(new Date(report.date), "dd-MM-yyyy") : "",
-        report.employeeId ?? "",
-        `${capitalizeFirstLetter(report.firstName)} ${capitalizeFirstLetter(
-          report.lastName
-        )}`,
-        report.site ?? "",
-        report.checkIn.substring(0, 5) ?? 0,
-        report.checkOut.substring(0, 5) ?? 0,
-        // report.breakTime ?? 0,
-        report.otherHours ?? 0,
-        decimalToHourMin(Number(report.hours)! ?? 0),
-        `Rs${
-          report.travelAllowance != null
-            ? Number(report.travelAllowance).toFixed(2)
-            : "0.00"
-        }`,
-        capitalizeFirstLetter(report.status!) ?? "",
-      ];
-    });
+    tableData = filtredAttendances
+      .map((report) => {
+        return [
+          report.date ? format(new Date(report.date), "eee, dd-MM-yyyy") : "",
+          report.employeeId ?? "",
+          `${capitalizeFirstLetter(report.firstName)} ${capitalizeFirstLetter(
+            report.lastName
+          )}`,
+          report.site ?? "",
+          report.checkIn.substring(0, 5) ?? 0,
+          report.checkOut.substring(0, 5) ?? 0,
+          // report.breakTime ?? 0,
+          report.otherHours ?? 0,
+          decimalToHourMin(Number(report.hours)! ?? 0),
+          `Rs${
+            report.travelAllowance != null
+              ? Number(report.travelAllowance).toFixed(2)
+              : "0.00"
+          }`,
+          capitalizeFirstLetter(report.status!) ?? "",
+        ];
+      })
+      .reverse();
     head.push([
       "Date",
       "Employee ID",

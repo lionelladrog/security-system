@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -25,7 +26,13 @@ import {
 } from "@/components/ui/select";
 import * as Switch from "@radix-ui/react-switch";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Search, FileDown, FileSpreadsheet } from "lucide-react";
+import {
+  CalendarIcon,
+  Search,
+  FileDown,
+  FileSpreadsheet,
+  ArrowRight,
+} from "lucide-react";
 import { format } from "date-fns";
 import { trpc } from "@/lib/trpc";
 import { months } from "@/constant";
@@ -34,7 +41,12 @@ import { saveAs } from "file-saver";
 import siteStore from "@/store/siteStore";
 import { StatsSkeleton } from "@/components/Skeleton";
 import { reportAll, reportSingle } from "./utils/pdf-report";
-import { getAttendanceStats, loadImageAsBase64 } from "@/lib/utils";
+import {
+  getAttendanceStats,
+  loadImageAsBase64,
+  decimalToDayHourMin,
+  decimalToHourMin,
+} from "@/lib/utils";
 import userStore from "@/store/userStore";
 
 import { SingleStaffReport, MultipleStaffReport } from "./templates";
@@ -68,6 +80,8 @@ function AttendanceReports() {
     localLeave: 0,
     sickLeave: 0,
     offDuty: 0,
+    extraDuty: 0,
+    travelling: 0,
     training: 0,
     late: 0,
     sites: 0,
@@ -75,6 +89,10 @@ function AttendanceReports() {
     travelAllowance: 0,
     hours: 0,
     notMarked: 0,
+    nbWeeks: 0,
+    nbSunday: 0,
+    nbWeekTotalHours: 0,
+    nbSundayTotalHours: 0,
     totalRecord: 0,
   });
 
@@ -574,7 +592,7 @@ function AttendanceReports() {
         {Attendances.isLoading ? (
           <StatsSkeleton />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
             <Card>
               <CardHeader className="pb-3">
                 <CardDescription>Period</CardDescription>
@@ -615,32 +633,45 @@ function AttendanceReports() {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Present:</span>
-                    <span className="text-green-600">{Stats.present}</span>
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                      {Stats.present}
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Training:</span>
-                    <span className="text-cyan-600">{Stats.training}</span>
+                    <Badge className="bg-cyan-100 text-cyan-800 hover:bg-gray-100">
+                      {Stats.training}
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Late:</span>
-                    <span className="text-orange-600">{Stats.late}</span>
+                    <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">
+                      {Stats.late}
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Absent:</span>
-                    <span className="text-red-600">{Stats.absent}</span>
+
+                    <Badge variant="destructive">{Stats.absent}</Badge>
                   </div>
 
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Local leave:</span>
-                    <span className="text-purple-600">{Stats.localLeave}</span>
+                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">
+                      {Stats.localLeave}
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Sick Leave:</span>
-                    <span className="text-pink-600">{Stats.sickLeave}</span>
+                    <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-100">
+                      {Stats.sickLeave}
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Off Duty:</span>
-                    <span className="text-gray-600">{Stats.offDuty}</span>
+                    <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
+                      {Stats.offDuty}
+                    </Badge>
                   </div>
                 </div>
               </CardContent>
@@ -680,6 +711,28 @@ function AttendanceReports() {
                 </div>
               </CardContent>
             </Card>
+            <Card>
+              <CardHeader className="pb-0">
+                <CardDescription>Weekdays Worked</CardDescription>
+                <CardTitle className="text-lg">
+                  {Stats.nbWeeks} days
+                  <br />
+                  Total: {decimalToHourMin(Stats.nbWeekTotalHours)}
+                </CardTitle>
+              </CardHeader>
+              <CardHeader className="pb-0">
+                <CardDescription>Sundays Worked</CardDescription>
+                <CardTitle className="text-lg">
+                  {Stats.nbSunday} days <br />
+                  Total: {decimalToHourMin(Stats.nbSundayTotalHours)}
+                </CardTitle>
+              </CardHeader>
+              {/* <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  Avg: {(Stats.hours / totalDays).toFixed(2)} Worked
+                </div>
+              </CardContent> */}
+            </Card>
           </div>
         )}
       </div>
@@ -691,15 +744,13 @@ function AttendanceReports() {
             {" "}
             <span className="capitalize">{searchName}</span> Attendance Reports
           </CardTitle>
-          <CardDescription>
+          {/* <CardDescription>
             Showing {filtredAttendances.length} of{" "}
             {filtredAttendances.length ?? 0} attendance record
-          </CardDescription>
+          </CardDescription> */}
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            {attendanceReportTableTemplate()}
-          </div>
+          <div className="">{attendanceReportTableTemplate()}</div>
         </CardContent>
       </Card>
     </div>

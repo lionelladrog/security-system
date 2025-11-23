@@ -124,12 +124,18 @@ function StaffAttendance() {
     localLeave: 0,
     sickLeave: 0,
     offDuty: 0,
+    extraDuty: 0,
+    travelling: 0,
     training: 0,
     sites: 0,
     travelAllowance: 0,
     attendanceRate: 0,
     hours: 0,
     notMarked: 0,
+    nbWeekTotalHours: 0,
+    nbSundayTotalHours: 0,
+    nbWeeks: 0,
+    nbSunday: 0,
     totalRecord: 0,
   });
   const [staffs, setStaffs] = useState<NewStaffMember[]>([]);
@@ -143,9 +149,6 @@ function StaffAttendance() {
   useEffect(() => {
     const newParams: Record<string, string> = {};
 
-    if (searchName !== "") {
-      newParams.employee = searchName;
-    }
     if (selectedMonth !== "all") {
       newParams.month = selectedMonth;
     } else if (dateRange.from && dateRange.to) {
@@ -194,12 +197,27 @@ function StaffAttendance() {
   }, [AttendanceStatusData.data]);
 
   useEffect(() => {
-    if (isDelete || queryParams) {
+    if (isDelete) {
       Attendances.refetch();
 
       setStaffIsDelete(false);
     }
-  }, [isDelete, queryParams, Attendances]);
+  }, [isDelete, Attendances]);
+
+  useEffect(() => {
+    if (searchName !== "") {
+      const newResult = filtredAttendances.filter(
+        (item) =>
+          item.firstName.toLowerCase().includes(searchName.toLowerCase()) ||
+          item.lastName.toLowerCase().includes(searchName.toLowerCase()) ||
+          item.employeeId.toLowerCase().includes(searchName.toLowerCase())
+      );
+
+      console.log("newResult", newResult);
+
+      setAttendanceState(newResult);
+    }
+  }, [searchName]);
 
   useEffect(() => {
     if (recordToUpdate) {
@@ -296,7 +314,7 @@ function StaffAttendance() {
       {Attendances.isLoading ? (
         <StatsCardsSkeleton />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-2 md:grid-cols-8 lg:grid-cols-8">
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Total Staff</CardDescription>
@@ -313,6 +331,15 @@ function StaffAttendance() {
           </Card>
           <Card>
             <CardHeader className="pb-3">
+              <CardDescription>Training</CardDescription>
+              <CardTitle className="text-3xl text-cyan-600">
+                {attendanceStats.training}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
               <CardDescription>Absent</CardDescription>
               <CardTitle className="text-3xl text-red-600">
                 {attendanceStats.absent}
@@ -321,17 +348,34 @@ function StaffAttendance() {
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Late</CardDescription>
-              <CardTitle className="text-3xl text-yellow-600">
-                {attendanceStats.late}
+              <CardDescription>Local Leave</CardDescription>
+              <CardTitle className="text-3xl text-purple-600">
+                {attendanceStats.localLeave}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Sick Leave</CardDescription>
+              <CardTitle className="text-3xl text-pink-600">
+                {attendanceStats.sickLeave}
               </CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Not Marked</CardDescription>
+              <CardDescription>Off Duty</CardDescription>
               <CardTitle className="text-3xl text-gray-600">
-                {attendanceStats.notMarked}
+                {attendanceStats.offDuty}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Extra Duty</CardDescription>
+              <CardTitle className="text-3xl text-gray-600">
+                {attendanceStats.extraDuty}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -466,12 +510,7 @@ function StaffAttendance() {
             )}
           </div>
 
-          {/* Results count */}
-          <div className="mb-3 text-sm text-muted-foreground">
-            Showing {staffs.length} of {staffs.length} staff members
-          </div>
-
-          <div className="rounded-md border">
+          <div className="">
             <AttendanceTable
               filteredStaffs={filtredAttendances}
               isLoading={Attendances.isLoading}
