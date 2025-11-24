@@ -1,6 +1,6 @@
 import { router, protectedProcedure } from "../../trpc";
 import { staffMember, NewStaffMember } from "../../db/schema/userSchema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import type { DrizzleError } from "drizzle-orm";
 import { staffMemberchema } from "@/type/declarations/user.type";
@@ -10,7 +10,8 @@ export const staffRouter = router({
     return await ctx.db
       .select()
       .from(staffMember)
-      .where(eq(staffMember.active, true));
+      .where(eq(staffMember.active, true))
+      .orderBy(desc(staffMember.id));
   }),
 
   addStaff: protectedProcedure
