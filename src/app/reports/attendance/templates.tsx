@@ -56,7 +56,6 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
     setCurrentPage(1);
   }, [attendances, itemsPerPage]);
 
-  // Regroupement sur data paginée (page courante) : évite les décales de colonne
   const dateCountsOnPage = paginatedStaffs.reduce((acc, report) => {
     const dateKey = report.date
       ? format(new Date(report.date), "dd-MM-yyyy")
@@ -307,10 +306,10 @@ export const MultipleStaffReport: React.FC<StaffReportProps> = ({
                       <TableCell className="font-medium">
                         {report.employeeId}
                       </TableCell>
-                      <TableCell className="break-words whitespace-normal max-w-[250px]">
+                      <TableCell className="break-words whitespace-normal max-w-[190px]">
                         {report.firstName} {report.lastName}
                       </TableCell>
-                      <TableCell className="break-words whitespace-normal max-w-[150px] ">
+                      <TableCell className="break-words whitespace-normal max-w-[100px] ">
                         {report.sites &&
                           report.sites.split(", ").map((site, index) => (
                             <span key={index}>
