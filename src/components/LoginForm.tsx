@@ -15,6 +15,7 @@ import Image from "next/image";
 import { trpc } from "@/lib/trpc";
 import userStore from "@/store/userStore";
 import { useRouter } from "next/navigation";
+import { log } from "console";
 
 interface LoginFormProps {
   relogin?: boolean;
@@ -31,43 +32,64 @@ function LoginForm({ relogin, afterLogin }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const validateLogin = () => {
+    if (!email || !password) {
+      setError("Please enter email and password");
+      toast.error("Please enter email and password", { duration: 10000 });
+      setIsLoading(false);
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      toast.error("Please enter a valid email address", { duration: 10000 });
+      setIsLoading(false);
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    loginMutation.mutate(
-      { email, password },
-      {
-        onSuccess: (data) => {
-          if (data) {
-            toast.success("Login successful!");
-            setUser(data);
+    if (validateLogin()) {
+      loginMutation.mutate(
+        { email, password },
+        {
+          onSuccess: (data) => {
+            if (data) {
+              toast.success("Login successful!");
+              setUser(data);
 
-            if (relogin && afterLogin) {
-              afterLogin();
-            } else {
-              router.push("/dashboard");
+              if (relogin && afterLogin) {
+                afterLogin();
+              } else {
+                router.push("/dashboard");
+              }
             }
-          }
-        },
-        onError: (err) => {
-          console.error(err);
+          },
+          onError: (err) => {
+            console.error(err);
 
-          if ("message" in err) {
-            setError(err.message);
-            toast.error(err.message, { duration: 10000 });
-          } else {
-            setError("An unexpected error occurred");
-            toast.error("An unexpected error occurred", { duration: 10000 });
-          }
-          setIsLoading(false);
+            if ("message" in err) {
+              setError(err.message);
+              toast.error(err.message, { duration: 10000 });
+            } else {
+              setError("An unexpected error occurred");
+              toast.error("An unexpected error occurred", { duration: 10000 });
+            }
+            setIsLoading(false);
 
-          setTimeout(() => {
-            setError(null);
-          }, 10000);
-        },
-      }
-    );
+            setTimeout(() => {
+              setError(null);
+            }, 10000);
+          },
+        }
+      );
+    }
+    // setIsLoading(false);
   };
 
   // Quick login for demo
@@ -106,16 +128,22 @@ function LoginForm({ relogin, afterLogin }: LoginFormProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-4"
+              autoComplete="on"
+            >
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
+                  name="email"
                   placeholder="contact@safewatch-security.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                 />
               </div>
 
@@ -124,10 +152,12 @@ function LoginForm({ relogin, afterLogin }: LoginFormProps) {
                 <Input
                   id="password"
                   type="password"
+                  name="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                 />
               </div>
 

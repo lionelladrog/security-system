@@ -136,15 +136,19 @@ export const getAttendanceStats = (
             stats.training++;
             break;
           case 9:
+            updateStatsForDate();
             stats.offDuty++;
             break;
           case 11:
+            updateStatsForDate();
             stats.extraDuty++;
             break;
           case 5:
+            updateStatsForDate();
             stats.localLeave++;
             break;
           case 6:
+            updateStatsForDate();
             stats.sickLeave++;
             break;
           default:

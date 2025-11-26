@@ -34,12 +34,12 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
   attendances,
   isLoading,
 }) => {
-  // --- PAGINATION ---
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const totalPages = Math.ceil(attendances.length / itemsPerPage);
 
+  // PAGINATION : staffs sur la page courante
   const paginatedStaffs = attendances.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -52,12 +52,12 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   useEffect(() => {
     setCurrentPage(1);
   }, [attendances, itemsPerPage]);
 
-  const dateCounts = attendances.reduce((acc, report) => {
+  // Regroupement sur data paginée (page courante) : évite les décales de colonne
+  const dateCountsOnPage = paginatedStaffs.reduce((acc, report) => {
     const dateKey = report.date
       ? format(new Date(report.date), "dd-MM-yyyy")
       : "";
@@ -65,7 +65,7 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
     return acc;
   }, {} as Record<string, number>);
 
-  const employeeCountsByDate = attendances.reduce((acc, report) => {
+  const employeeCountsByDateOnPage = paginatedStaffs.reduce((acc, report) => {
     const dateKey = report.date
       ? format(new Date(report.date), "dd-MM-yyyy")
       : "";
@@ -75,16 +75,13 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
     return acc;
   }, {} as Record<string, Record<string, number>>);
 
-  const renderedDates = new Set<string>();
-  const renderedEmployeesInDate = new Set<string>();
-
   return (
     <div>
       {isLoading ? (
         <AttendanceReportTableSkeleton />
       ) : (
         <div>
-          <div className="w-full overflow-x-auto  rounded-md border">
+          <div className="w-full overflow-x-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -102,91 +99,97 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedStaffs.length > 0 ? (
-                  paginatedStaffs.map((report, index) => {
-                    const dateKey = report.date
-                      ? format(new Date(report.date), "dd-MM-yyyy")
-                      : "";
-                    const empKey = `${report.employeeId}-${report.firstName}-${report.lastName}`;
+                {(() => {
+                  const renderedDates = new Set<string>();
+                  const renderedEmployeesInDate = new Set<string>();
 
-                    const isFirstDateOccurrence = !renderedDates.has(dateKey);
-                    if (isFirstDateOccurrence) renderedDates.add(dateKey);
+                  return paginatedStaffs.length > 0 ? (
+                    paginatedStaffs.map((report, index) => {
+                      const dateKey = report.date
+                        ? format(new Date(report.date), "dd-MM-yyyy")
+                        : "";
+                      const empKey = `${report.employeeId}-${report.firstName}-${report.lastName}`;
 
-                    const employeeDateKey = `${dateKey}-${empKey}`;
-                    const isFirstEmployeeOccurrenceInDate = !renderedEmployeesInDate.has(
-                      employeeDateKey
-                    );
-                    if (isFirstEmployeeOccurrenceInDate)
-                      renderedEmployeesInDate.add(employeeDateKey);
+                      const isFirstDateOccurrence = !renderedDates.has(dateKey);
+                      if (isFirstDateOccurrence) renderedDates.add(dateKey);
 
-                    return (
-                      <TableRow
-                        key={`${report.id}-${index}`}
-                        className="hover:bg-slate-50"
+                      const employeeDateKey = `${dateKey}-${empKey}`;
+                      const isFirstEmployeeOccurrenceInDate = !renderedEmployeesInDate.has(
+                        employeeDateKey
+                      );
+                      if (isFirstEmployeeOccurrenceInDate)
+                        renderedEmployeesInDate.add(employeeDateKey);
+
+                      return (
+                        <TableRow
+                          key={`${report.id}-${index}`}
+                          className="hover:bg-slate-50"
+                        >
+                          {isFirstDateOccurrence && (
+                            <TableCell rowSpan={dateCountsOnPage[dateKey]}>
+                              {dateKey}
+                            </TableCell>
+                          )}
+                          {isFirstEmployeeOccurrenceInDate && (
+                            <>
+                              <TableCell
+                                rowSpan={
+                                  employeeCountsByDateOnPage[dateKey][empKey]
+                                }
+                              >
+                                {report.employeeId}
+                              </TableCell>
+                              <TableCell
+                                rowSpan={
+                                  employeeCountsByDateOnPage[dateKey][empKey]
+                                }
+                              >
+                                {report.firstName} {report.lastName}
+                              </TableCell>
+                            </>
+                          )}
+                          <TableCell>
+                            <SiteBadge site={report.site} />
+                          </TableCell>
+                          <TableCell>
+                            {report.checkIn?.substring(0, 5)}
+                          </TableCell>
+                          <TableCell>
+                            {report.checkOut?.substring(0, 5)}
+                          </TableCell>
+                          <TableCell>{report.breakTime}min</TableCell>
+                          <TableCell>{report.otherHours}min</TableCell>
+                          <TableCell>
+                            {decimalToHourMin(Number(report.hours))}
+                          </TableCell>
+                          <TableCell>
+                            Rs {Number(report.travelAllowance).toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            {report.status ? getStatusBadge(report.status) : ""}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={11}
+                        className="text-center py-8 text-muted-foreground"
                       >
-                        {isFirstDateOccurrence ? (
-                          <TableCell rowSpan={dateCounts[dateKey]} className="">
-                            {dateKey}
-                          </TableCell>
-                        ) : null}
-
-                        {isFirstEmployeeOccurrenceInDate ? (
-                          <TableCell
-                            rowSpan={employeeCountsByDate[dateKey][empKey]}
-                            className="font-medium"
-                          >
-                            {report.employeeId}
-                          </TableCell>
-                        ) : null}
-
-                        {isFirstEmployeeOccurrenceInDate ? (
-                          <TableCell
-                            rowSpan={employeeCountsByDate[dateKey][empKey]}
-                          >
-                            {report.firstName} {report.lastName}
-                          </TableCell>
-                        ) : null}
-
-                        <TableCell>
-                          <SiteBadge site={report.site} />
-                        </TableCell>
-                        <TableCell>{report.checkIn?.substring(0, 5)}</TableCell>
-                        <TableCell>
-                          {report.checkOut?.substring(0, 5)}
-                        </TableCell>
-                        <TableCell>{report.breakTime}min</TableCell>
-                        <TableCell>{report.otherHours}min</TableCell>
-                        <TableCell>
-                          {decimalToHourMin(Number(report.hours))}
-                        </TableCell>
-                        <TableCell>
-                          Rs {Number(report.travelAllowance).toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          {report.status ? getStatusBadge(report.status) : ""}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={10}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      No data available for the selected filters
-                    </TableCell>
-                  </TableRow>
-                )}
+                        No data available for the selected filters
+                      </TableCell>
+                    </TableRow>
+                  );
+                })()}
               </TableBody>
             </Table>
           </div>
           <div className="flex justify-between items-center mt-3">
             <div className="flex items-center gap-2">
               <span className="text-sm">Rows per page:</span>
-
               <Select onValueChange={(v) => setItemsPerPage(Number(v))}>
-                <SelectTrigger className="w-15 bg-transparent border border-gray-300  rounded px-2 py-0 !important">
+                <SelectTrigger className="w-15 bg-transparent border border-gray-300 rounded px-2 py-0 !important">
                   <SelectValue placeholder={itemsPerPage} />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
@@ -194,7 +197,7 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
                     <SelectItem
                       key={n}
                       value={String(n)}
-                      className=" py-1 hover:bg-blue-100"
+                      className="py-1 hover:bg-blue-100"
                     >
                       {n}
                     </SelectItem>
@@ -202,8 +205,6 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Pagination */}
             <div className="flex items-center gap-1">
               <Button
                 variant="outline"
@@ -211,9 +212,8 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
                 disabled={currentPage === 1}
                 style={{ padding: "2px 10px" }}
               >
-                <ChevronLeft className=" h-4 w-4 " />
+                <ChevronLeft className="h-4 w-4" />
               </Button>
-
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(
                 (page) => (
                   <Button
@@ -227,14 +227,13 @@ export const SingleStaffReport: React.FC<StaffReportProps> = ({
                   </Button>
                 )
               )}
-
               <Button
                 variant="outline"
                 onClick={goToNextPage}
                 disabled={currentPage === totalPages}
                 style={{ padding: "2px 10px" }}
               >
-                <ChevronRight className=" h-4 w-4" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
